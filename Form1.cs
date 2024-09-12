@@ -23,6 +23,11 @@ namespace KompasDXF
             InitializeComponent();
         }
 
+        private void Form1_Load(object sender, EventArgs e)
+        {
+
+        }
+
         private void button1_Click(object sender, EventArgs e)
         {
             IApplication application = (IApplication)Marshal.GetActiveObject("Kompas.Application.7");
@@ -95,9 +100,45 @@ namespace KompasDXF
             kompasDocument.Close(DocumentCloseOptions.kdDoNotSaveChanges);
         }
 
-        private void Form1_Load(object sender, EventArgs e)
+        private void button2_Click(object sender, EventArgs e)
         {
+            IApplication application = (IApplication)Marshal.GetActiveObject("Kompas.Application.7");
+            IKompasDocument3D document3D = (IKompasDocument3D)application.ActiveDocument;
+            IPart7 part7 = document3D.TopPart;
 
+            string drawingName = /*document3D.PathName +*/ part7.FileName.Remove(part7.FileName.Length - 4) + ".cdw";
+            string[] fileEntries = Directory.GetFiles(document3D.Path);
+            if (fileEntries.Contains(drawingName))
+            {                
+                //Скрываем все сообщения системы - Да
+                application.HideMessage = ksHideMessageEnum.ksHideMessageYes;
+                //IKompasDocument2D kDoc = (IKompasDocument2D)application.Documents.Open(drawingName, true, false);
+                //IKompasDocument2D1 kompasDocument2D1 = (IKompasDocument2D1)kDoc;
+                //kompasDocument2D1.RebuildDocument();
+                Converter сonverter = application.Converter[@"C:\\Program Files\\ASCON\\KOMPAS-3D v18\\Bin\Pdf2d.dll"];
+                сonverter.Convert(part7.FileName.Remove(part7.FileName.Length - 4) + ".cdw",
+                    part7.FileName.Remove(part7.FileName.Length - 4) + ".pdf",0,false);
+                
+
+                //Скрываем все сообщения системы - Нет
+                application.HideMessage = ksHideMessageEnum.ksHideMessageNo;
+            }
+            
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            string workDirectory = Directory.GetCurrentDirectory();
+
+            IApplication application = (IApplication)Marshal.GetActiveObject("Kompas.Application.7");
+            IKompasDocument3D document3D = (IKompasDocument3D)application.ActiveDocument;
+            IPart7 part7 = document3D.TopPart;
+            if (document3D.DocumentType == Kompas6Constants.DocumentTypeEnum.ksDocumentPart)
+            {
+
+            }
+
+                MessageBox.Show(workDirectory);
         }
     }
 }
