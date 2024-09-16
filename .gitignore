@@ -2,3 +2,5 @@ bin/
 obj/
 .picasaoriginals/
 .vs/
+Properties/
+packages/
