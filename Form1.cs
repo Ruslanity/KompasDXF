@@ -250,47 +250,25 @@ namespace KompasDXF
 
         private void button4_Click(object sender, EventArgs e)
         {
-            //KompasObject application = (KompasObject)Marshal.GetActiveObject("KOMPAS.Application.5");
-            //if (application!=null)
-            //{
-            //    ksSpcDocument iDocumentSpc = (ksSpcDocument)application.SpcDocument();
-            //    application.ActivateControllerAPI();
-            //}
             IApplication application = (IApplication)Marshal.GetActiveObject("Kompas.Application.7");
-            IKompasDocument document = (IKompasDocument3D)application.ActiveDocument;
-            ISpecificationDescriptions specDesc = document.SpecificationDescriptions;
-            ISpecificationDescription specificationDescription = specDesc.ActiveFromLibStyle;
-
-            if (specificationDescription == null)
+            IKompasDocument3D document3D = (IKompasDocument3D)application.ActiveDocument;
+            IPart7 part7 = document3D.TopPart;
+            IPropertyMng propertyMng = (IPropertyMng)application;
+            var properties = propertyMng.GetProperties(document3D);
+            IPropertyKeeper propertyKeeper = (IPropertyKeeper)part7;
+            foreach (IProperty item in properties)
             {
-                specificationDescription = specDesc.Add(@"C:\Program Files\ASCON\KOMPAS-3D v18\Sys\graphic.lyt", 1, null);
-                specificationDescription.DelegateMode = true;
-                ISpecificationBaseObject specificationBaseObject = specificationDescription.BaseObjects.Add(20, 0);
-                specificationBaseObject.SyncronizeWithProperties = true;
-                specificationBaseObject.EditSourceObject = true;
-                specificationBaseObject.Draw = true;
-                specificationBaseObject.SpcUsed[0] = true;
-                specificationBaseObject.Update();
-                specificationDescription.Update();
-                ISpecificationObject specificationObject = specificationBaseObject;
-                //specificationObject.Edit();
-                specificationObject.Update();
-                //int s = specDesc.Count;
-                //MessageBox.Show(s.ToString());
-                //ISpecificationObject specificationObject = specificationDescription.Objects;
-                //specificationObject.Update();
-                //ISpecificationDocument specificationDocument = (ISpecificationDocument)document;
-                //AttachedDocuments attachedDocuments = 
+                if (item.Name == "Раздел спецификации")
+                {
+                    dynamic info;
+                    bool source;
+                    propertyKeeper.GetPropertyValue((_Property)item, out info, false, out source);
+                    string otherPart = @"'<property id=""SPCSection"" expression="""" fromSource=""false"" format=""{$sectionName}"">''''<property id=""sectionName"" value=""Прочие изделия"" type=""string"" />''''<property id=""sectionNumb"" value=""30"" type=""int"" />'";
+                    string detal = @"'<property id=""SPCSection"" expression="""" fromSource=""false"" format=""{$sectionName}"">''''<property id=""sectionName"" value=""Детали"" type=""string"" />''''<property id=""sectionNumb"" value=""20"" type=""int"" />'";
+                    string assembly = @"'<property id=""SPCSection"" expression="""" fromSource=""false"" format=""{$sectionName}"">''''<property id=""sectionName"" value=""Сборочные единицы"" type=""string"" />''''<property id=""sectionNumb"" value=""15"" type=""int"" />'";
+                    propertyKeeper.SetComplexPropertyValue((_Property)item, assembly);
+                }
             }
-
-
-            //specBaseObj[0].SetSection(20);
-            //foreach (ISpecificationBaseObject item in specBaseObj)
-            //{
-            //    MessageBox.Show(item.Section.ToString());
-            //}
-            //ISpecificationBaseObject specificationBaseObject = specBaseObj[0];
-
         }
     }
 }
