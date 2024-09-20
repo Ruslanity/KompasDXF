@@ -269,6 +269,17 @@ namespace KompasDXF
                     propertyKeeper.SetComplexPropertyValue((_Property)item, assembly);
                 }
             }
+            IFeature7 pFeat = (IFeature7)part7.Owner;
+            Object[] featCol = pFeat.SubFeatures[0, false, false];
+            //https://forum.ascon.ru/index.php?topic=31251.msg249518#msg249518
+            foreach (IFeature7 item in featCol)
+            {
+                if (item.Name.CompareTo("Листовое тело")
+                {
+
+                }
+            }
+
         }
     }
 }
