@@ -250,9 +250,12 @@ namespace KompasDXF
 
         private void button4_Click(object sender, EventArgs e)
         {
+            //Подключаемся к компасу
             IApplication application = (IApplication)Marshal.GetActiveObject("Kompas.Application.7");
             IKompasDocument3D document3D = (IKompasDocument3D)application.ActiveDocument;
             IPart7 part7 = document3D.TopPart;
+
+            #region Присваиваю раздел спецификации
             IPropertyMng propertyMng = (IPropertyMng)application;
             var properties = propertyMng.GetProperties(document3D);
             IPropertyKeeper propertyKeeper = (IPropertyKeeper)part7;
@@ -266,20 +269,70 @@ namespace KompasDXF
                     string otherPart = @"'<property id=""SPCSection"" expression="""" fromSource=""false"" format=""{$sectionName}"">''''<property id=""sectionName"" value=""Прочие изделия"" type=""string"" />''''<property id=""sectionNumb"" value=""30"" type=""int"" />'";
                     string detal = @"'<property id=""SPCSection"" expression="""" fromSource=""false"" format=""{$sectionName}"">''''<property id=""sectionName"" value=""Детали"" type=""string"" />''''<property id=""sectionNumb"" value=""20"" type=""int"" />'";
                     string assembly = @"'<property id=""SPCSection"" expression="""" fromSource=""false"" format=""{$sectionName}"">''''<property id=""sectionName"" value=""Сборочные единицы"" type=""string"" />''''<property id=""sectionNumb"" value=""15"" type=""int"" />'";
-                    propertyKeeper.SetComplexPropertyValue((_Property)item, assembly);
+                    propertyKeeper.SetComplexPropertyValue((_Property)item, detal);
                 }
             }
+            #endregion
+                        
+            #region Проверяю совпадает ли имя и обозначение с именем файла
+            IKompasDocument kompasDocument = (IKompasDocument)application.ActiveDocument;
+            if (kompasDocument.Name == "")
+            {
+                MessageBox.Show("Сохраните деталь");
+            }
+            else
+            {
+                string partName1 = "";
+                string partDesignation1 = "";
+                IPropertyMng propertyMng1 = (IPropertyMng)application;
+                var properties1 = propertyMng1.GetProperties(document3D);
+                IPropertyKeeper propertyKeeper1 = (IPropertyKeeper)part7;
+                foreach (IProperty item in properties)
+                {
+                    if (item.Name == "Наименование")
+                    {
+                        dynamic info;
+                        bool source;
+                        propertyKeeper1.GetPropertyValue((_Property)item, out info, false, out source);
+                        partName1 = info;
+                    }
+                    if (item.Name == "Обозначение")
+                    {
+                        dynamic info;
+                        bool source;
+                        propertyKeeper.GetPropertyValue((_Property)item, out info, false, out source);
+                        partDesignation1 = info;
+                    }
+                }
+                MessageBox.Show(kompasDocument.Name.Remove(kompasDocument.Name.Count() - 4) + "   |   " + "Имя документа\n" + partDesignation1 + " - " + partName1 + "   |   " + "Имя/обозначение");
+            }
+            #endregion
+
+            #region Проверяю совпадает ли глобальная переменная толщина с толщиной в определении листового тела
             IFeature7 pFeat = (IFeature7)part7.Owner;
             Object[] featCol = pFeat.SubFeatures[0, false, false];
-            //https://forum.ascon.ru/index.php?topic=31251.msg249518#msg249518
+            ////https://forum.ascon.ru/index.php?topic=31251.msg249518#msg249518
+            
+            double t=0;
+            
+            IFeature7 _feature7 = (IFeature7)document3D.TopPart;
+            var _t = _feature7.Variable[false, true, "SM_Thickness"];
+
             foreach (IFeature7 item in featCol)
             {
-                if (item.Name.CompareTo("Листовое тело")
+                if(item.Name.Contains("Листовое тело:"))
                 {
-
-                }
+                    for (int i = 0; i < item.VariablesCount[false,true]; i++)
+                    {
+                        if (item.Variable[false, true, i].ParameterNote == @"Толщина листового тела")
+                        {
+                            t = item.Variable[false, true, i].Value;
+                        }
+                    }
+                }                
             }
-
+            if (t != _t.Value) { MessageBox.Show("Толщина глобальной переменной и толщина листового тела не совпадают"); }
+            #endregion
         }
     }
 }
