@@ -134,116 +134,196 @@ namespace KompasDXF
             IApplication application = (IApplication)Marshal.GetActiveObject("Kompas.Application.7");
             IKompasDocument3D document3D = (IKompasDocument3D)application.ActiveDocument;
             IPart7 part7 = document3D.TopPart;
-            
-            if (document3D.DocumentType == Kompas6Constants.DocumentTypeEnum.ksDocumentPart)
+
+            switch (document3D.DocumentType)
             {
-                string a = Path.Combine(Environment.CurrentDirectory, "PartTemplate.xlsx");
-                string PathName = document3D.Path;
-
-                #region Вытаскиваем свойства
-                string partName = "";
-                string partDesignation = "";
-                string partMaterial = "";
-                double partMass = 0;
-                IPropertyMng propertyMng = (IPropertyMng)application;
-                var properties = propertyMng.GetProperties(document3D);
-                IPropertyKeeper propertyKeeper = (IPropertyKeeper)part7;
-                foreach (IProperty item in properties)
-                {
-                    if (item.Name == "Наименование")
+                case DocumentTypeEnum.ksDocumentUnknown:
+                    break;
+                case DocumentTypeEnum.ksDocumentDrawing:
+                    break;
+                case DocumentTypeEnum.ksDocumentFragment:
+                    break;
+                case DocumentTypeEnum.ksDocumentSpecification:
+                    break;
+                case DocumentTypeEnum.ksDocumentPart:
                     {
-                        dynamic info;
-                        bool source;
-                        propertyKeeper.GetPropertyValue((_Property)item, out info, false, out source);
-                        partName = info;
-                        //SqlCommand cmd3 = new SqlCommand($"UPDATE [Detail] SET [FileName] = N'{info}' WHERE [Name] = N'{part.Name}'", SqlConnection);
-                        //cmd3.ExecuteNonQuery();
+                        string a = Path.Combine(Environment.CurrentDirectory, "PartTemplate.xlsx");
+                        string PathName = document3D.Path;
+
+                        #region Вытаскиваем свойства
+                        string partName = "";
+                        string partDesignation = "";
+                        string partMaterial = "";
+                        double partMass = 0;
+                        IPropertyMng propertyMng = (IPropertyMng)application;
+                        var properties = propertyMng.GetProperties(document3D);
+                        IPropertyKeeper propertyKeeper = (IPropertyKeeper)part7;
+                        foreach (IProperty item in properties)
+                        {
+                            if (item.Name == "Наименование")
+                            {
+                                dynamic info;
+                                bool source;
+                                propertyKeeper.GetPropertyValue((_Property)item, out info, false, out source);
+                                partName = info;
+                            }
+                            if (item.Name == "Обозначение")
+                            {
+                                dynamic info;
+                                bool source;
+                                propertyKeeper.GetPropertyValue((_Property)item, out info, false, out source);
+                                partDesignation = info;
+                            }
+                            if (item.Name == "Материал")
+                            {
+                                dynamic info;
+                                bool source;
+                                propertyKeeper.GetPropertyValue((_Property)item, out info, false, out source);
+                                partMaterial = info;
+                            }
+                            if (item.Name == "Масса")
+                            {
+                                item.SignificantDigitsCount = 2;
+                                dynamic info;
+                                bool source;
+                                propertyKeeper.GetPropertyValue((_Property)item, out info, false, out source);
+                                partMass = info;
+                            }
+                            if (item.Name == "Раздел спецификации")
+                            {
+                                dynamic info;
+                                bool source;
+                                propertyKeeper.GetPropertyValue((_Property)item, out info, false, out source);
+                            }
+                        }
+
+                        #endregion
+
+                        XLWorkbook excelWorkbook = new XLWorkbook(a);
+                        IXLWorksheet worksheet = excelWorkbook.Worksheet(1);
+                        #region Обозначение
+                        worksheet.Cell(11, 1).Value = partDesignation;
+                        worksheet.Cell(11, 1).Style.Font.FontName = "Arial Cyr";
+                        worksheet.Cell(11, 1).Style.Font.Bold = false;
+                        worksheet.Cell(11, 1).Style.Font.Italic = false;
+                        worksheet.Cell(11, 1).Style.Font.FontSize = 11;
+                        worksheet.Cell(11, 1).Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                        worksheet.Cell(11, 1).Style.Alignment.SetVertical(XLAlignmentVerticalValues.Center);
+                        #endregion
+
+                        #region Наименование
+                        worksheet.Cell(11, 4).Value = partName;
+                        worksheet.Cell(11, 4).Style.Font.FontName = "Arial Cyr";
+                        worksheet.Cell(11, 4).Style.Font.Italic = false;
+                        worksheet.Cell(11, 4).Style.Font.FontSize = 11;
+                        worksheet.Cell(11, 4).Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                        worksheet.Cell(11, 4).Style.Alignment.SetVertical(XLAlignmentVerticalValues.Center);
+                        #endregion
+
+                        #region Материал
+                        worksheet.Cell(11, 6).Value = partMaterial;
+                        worksheet.Cell(11, 6).Style.Font.FontName = "Arial Cyr";
+                        worksheet.Cell(11, 1).Style.Font.Bold = false;
+                        worksheet.Cell(11, 6).Style.Font.Italic = false;
+                        worksheet.Cell(11, 6).Style.Font.FontSize = 10;
+                        worksheet.Cell(11, 6).Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                        worksheet.Cell(11, 6).Style.Alignment.SetVertical(XLAlignmentVerticalValues.Center);
+                        worksheet.Cell(11, 6).Style.Alignment.WrapText = true;
+                        #endregion
+
+                        #region Программа и толщина
+                        IFeature7 feature7 = (IFeature7)document3D.TopPart;
+                        var t = feature7.Variable[false, true, "SM_Thickness"];
+                        
+                        if (t!=null)
+                        {
+                            string NameProgramm = t.Value + "mm_" + partDesignation.Remove(0, 3);
+                            worksheet.Cell(18, 3).Value = NameProgramm;
+                            worksheet.Cell(18, 3).Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left);
+                            worksheet.Cell(11, 7).Value = t.Value;
+                        }                        
+                        #endregion
+                        excelWorkbook.SaveAs(PathName + partDesignation + " - " + partName + ".xlsx");
                     }
-                    if (item.Name == "Обозначение")
+                    break;
+                case DocumentTypeEnum.ksDocumentAssembly:
                     {
-                        dynamic info;
-                        bool source;
-                        propertyKeeper.GetPropertyValue((_Property)item, out info, false, out source);
-                        partDesignation = info;
-                        //SqlCommand cmd3 = new SqlCommand($"UPDATE [Detail] SET [Designation] = N'{info}' WHERE [Name] = N'{part.Name}'", SqlConnection);
-                        //cmd3.ExecuteNonQuery();
+                        string a = Path.Combine(Environment.CurrentDirectory, "PartTemplate.xlsx");
+                        string PathName = document3D.Path;
+
+                        KompasObject kompas = (KompasObject)Marshal.GetActiveObject("KOMPAS.Application.5");
+                        kompas.Visible = true;
+                        kompas.ActivateControllerAPI();
+                        ksDocument3D ksDocument3D = (ksDocument3D)kompas.ActiveDocument3D();
+                        ksPartCollection _ksPartCollection = ksDocument3D.PartCollection(true);
+                        Dictionary<string, int> collectionParts = new Dictionary<string, int>();
+                        Dictionary<string, int> collectionStandartDetails = new Dictionary<string, int>();
+                        Dictionary<string, int> othertDetails = new Dictionary<string, int>();
+                        for (int i = 0; i < _ksPartCollection.GetCount(); i++)
+                        {
+                            ksPart ksPart = _ksPartCollection.GetByIndex(i);
+                            IPart7 _part7 = kompas.TransferInterface(ksPart, 2, 0);
+
+                            IApplication _application = kompas.ksGetApplication7();
+                            IKompasDocument3D kompasDocument3D = (IKompasDocument3D)_application.ActiveDocument;
+                            IPropertyMng propertyMng = (IPropertyMng)_application;
+                            var properties = propertyMng.GetProperties(kompasDocument3D);
+                            IPropertyKeeper propertyKeeper = (IPropertyKeeper)_part7;
+
+                            string partName = "";
+                            foreach (IProperty item in properties)
+                            {
+                                if (item.Name == "Раздел спецификации")
+                                {
+                                    dynamic info;
+                                    bool source;
+                                    propertyKeeper.GetPropertyValue((_Property)item, out info, false, out source);
+                                    partName = info;
+                                }
+                            }
+                            if (collectionParts.ContainsKey(ksPart.marking + " - " + ksPart.name)
+                                && ksPart.marking != ""
+                                && ksPart.excluded == false)
+                            {
+                                collectionParts[ksPart.marking + " - " + ksPart.name] = collectionParts[ksPart.marking + " - " + ksPart.name] + 1;
+                            }
+                            else if (collectionParts.ContainsKey(ksPart.marking + " - " + ksPart.name) == false
+                                     && ksPart.marking != ""
+                                     && ksPart.excluded == false)
+                            { collectionParts.Add(ksPart.marking + " - " + ksPart.name, 1); }
+                            else if (collectionStandartDetails.ContainsKey(ksPart.name)
+                                //&& ksPart.marking == ""
+                                && ksPart.excluded == false
+                                && partName == "Стандартные изделия")
+                            {
+                                collectionStandartDetails[ksPart.name] = collectionStandartDetails[ksPart.name] + 1;
+                            }
+                            else if (collectionStandartDetails.ContainsKey(ksPart.name) == false
+                                     //&& ksPart.marking == ""
+                                     && ksPart.excluded == false
+                                     && partName == "Стандартные изделия")
+                            { collectionStandartDetails.Add(ksPart.name, 1); }
+                            else if (othertDetails.ContainsKey(ksPart.name)
+                                //&& ksPart.marking == ""
+                                && ksPart.excluded == false
+                                && partName == "Прочие изделия")
+                            {
+                                othertDetails[ksPart.name] = othertDetails[ksPart.name] + 1;
+                            }
+                            else if (othertDetails.ContainsKey(ksPart.name) == false
+                                     //&& ksPart.marking == ""
+                                     && ksPart.excluded == false
+                                     && partName == "Прочие изделия")
+                            { othertDetails.Add(ksPart.name, 1); }
+                        }
                     }
-                    if (item.Name == "Материал")
-                    {
-                        dynamic info;
-                        bool source;
-                        propertyKeeper.GetPropertyValue((_Property)item, out info, false, out source);
-                        partMaterial = info;
-                        //SqlCommand cmd3 = new SqlCommand($"UPDATE [Detail] SET [Material] = N'{info}' WHERE [Name] = N'{part.Name}'", SqlConnection);
-                        //cmd3.ExecuteNonQuery();
-                    }
-                    if (item.Name == "Масса")
-                    {
-                        item.SignificantDigitsCount = 2;
-                        dynamic info;
-                        bool source;
-                        propertyKeeper.GetPropertyValue((_Property)item, out info, false, out source);
-                        partMass = info;
-                        //SqlCommand cmd3 = new SqlCommand($"UPDATE [Detail] SET [Mass] = N'{info}' WHERE [Name] = N'{part.Name}'", SqlConnection);
-                        //cmd3.ExecuteNonQuery();
-                    }
-                    if (item.Name == "Раздел спецификации")
-                    {
-                        dynamic info;
-                        bool source;
-                        propertyKeeper.GetPropertyValue((_Property)item, out info, false, out source);
-                        //SqlCommand cmd3 = new SqlCommand($"UPDATE [Detail] SET [Раздел спецификации] = N'{info}' WHERE [Name] = N'{part.Name}'", SqlConnection);
-                        //cmd3.ExecuteNonQuery();
-                    }
-                }
-
-                #endregion
-
-
-                XLWorkbook excelWorkbook = new XLWorkbook(a);
-                IXLWorksheet worksheet = excelWorkbook.Worksheet(1);
-                #region Обозначение
-                worksheet.Cell(11, 1).Value = partDesignation;
-                worksheet.Cell(11, 1).Style.Font.FontName = "Arial Cyr";
-                worksheet.Cell(11, 1).Style.Font.Bold = false;
-                worksheet.Cell(11, 1).Style.Font.Italic = false;
-                worksheet.Cell(11, 1).Style.Font.FontSize = 11;
-                worksheet.Cell(11, 1).Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
-                worksheet.Cell(11, 1).Style.Alignment.SetVertical(XLAlignmentVerticalValues.Center);
-                #endregion
-
-                #region Наименование
-                worksheet.Cell(11, 4).Value = partName;
-                worksheet.Cell(11, 4).Style.Font.FontName = "Arial Cyr";
-                worksheet.Cell(11, 4).Style.Font.Italic = false;
-                worksheet.Cell(11, 4).Style.Font.FontSize = 11;
-                worksheet.Cell(11, 4).Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
-                worksheet.Cell(11, 4).Style.Alignment.SetVertical(XLAlignmentVerticalValues.Center);
-                #endregion
-
-                #region Материал
-                worksheet.Cell(11, 6).Value = partMaterial;
-                worksheet.Cell(11, 6).Style.Font.FontName = "Arial Cyr";
-                worksheet.Cell(11, 1).Style.Font.Bold = false;
-                worksheet.Cell(11, 6).Style.Font.Italic = false;
-                worksheet.Cell(11, 6).Style.Font.FontSize = 10;                
-                worksheet.Cell(11, 6).Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
-                worksheet.Cell(11, 6).Style.Alignment.SetVertical(XLAlignmentVerticalValues.Center);
-                worksheet.Cell(11, 6).Style.Alignment.WrapText = true;
-                #endregion
-
-                #region Программа и толщина
-                IFeature7 feature7 = (IFeature7)document3D.TopPart;
-                var t = feature7.Variable[false, true, "SM_Thickness"];
-                string NameProgramm = t.Value + "mm_" + partDesignation.Remove(0, 3);
-                worksheet.Cell(18, 3).Value = NameProgramm;
-                worksheet.Cell(18, 3).Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left);
-                worksheet.Cell(11, 7).Value = t.Value;
-
-                #endregion
-
-
-                excelWorkbook.SaveAs(PathName + partDesignation+" - "+ partName + ".xlsx");
+                    break;
+                case DocumentTypeEnum.ksDocumentTextual:
+                    break;
+                case DocumentTypeEnum.ksDocumentTechnologyAssembly:
+                    break;
+                default:
+                    break;
             }
             
         }
@@ -333,6 +413,19 @@ namespace KompasDXF
             }
             if (t != _t.Value) { MessageBox.Show("Толщина глобальной переменной и толщина листового тела не совпадают"); }
             #endregion
+        }
+
+        private void button5_Click(object sender, EventArgs e)
+        {
+            KompasObject kompas = (KompasObject)Marshal.GetActiveObject("KOMPAS.Application.5");
+            kompas.Visible = true;
+            kompas.ActivateControllerAPI();
+            ksDocument3D ksDocument3D = (ksDocument3D)kompas.ActiveDocument3D();
+            ksPartCollection _ksPartCollection = ksDocument3D.PartCollection(true);
+            for (int i = 0; i < _ksPartCollection.GetCount(); i++)
+            {
+
+            }
         }
     }
 }
