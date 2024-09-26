@@ -31,7 +31,7 @@ namespace KompasDXF
 
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        private void createDXF_Click(object sender, EventArgs e)
         {
             IApplication application = (IApplication)Marshal.GetActiveObject("Kompas.Application.7");
             IKompasDocument3D document3D = (IKompasDocument3D)application.ActiveDocument;
@@ -129,7 +129,7 @@ namespace KompasDXF
             
         }
 
-        private void button3_Click(object sender, EventArgs e)
+        private void createExcel_Click(object sender, EventArgs e)
         {
             IApplication application = (IApplication)Marshal.GetActiveObject("Kompas.Application.7");
             IKompasDocument3D document3D = (IKompasDocument3D)application.ActiveDocument;
@@ -248,8 +248,75 @@ namespace KompasDXF
                     break;
                 case DocumentTypeEnum.ksDocumentAssembly:
                     {
-                        string a = Path.Combine(Environment.CurrentDirectory, "PartTemplate.xlsx");
+                        string a = Path.Combine(Environment.CurrentDirectory, "AssemblyTemplate.xlsx");
                         string PathName = document3D.Path;
+                        #region Вытаскиваем свойства сборки
+                        string partName = "";
+                        string partDesignation = "";
+                        //string partMaterial = "";
+                        //double partMass = 0;
+                        IPropertyMng propertyMng = (IPropertyMng)application;
+                        var properties = propertyMng.GetProperties(document3D);
+                        IPropertyKeeper propertyKeeper = (IPropertyKeeper)part7;
+                        foreach (IProperty item in properties)
+                        {
+                            if (item.Name == "Наименование")
+                            {
+                                dynamic info;
+                                bool source;
+                                propertyKeeper.GetPropertyValue((_Property)item, out info, false, out source);
+                                partName = info;
+                            }
+                            if (item.Name == "Обозначение")
+                            {
+                                dynamic info;
+                                bool source;
+                                propertyKeeper.GetPropertyValue((_Property)item, out info, false, out source);
+                                partDesignation = info;
+                            }
+                            //if (item.Name == "Материал")
+                            //{
+                            //    dynamic info;
+                            //    bool source;
+                            //    propertyKeeper.GetPropertyValue((_Property)item, out info, false, out source);
+                            //    partMaterial = info;
+                            //}
+                            //if (item.Name == "Масса")
+                            //{
+                            //    item.SignificantDigitsCount = 2;
+                            //    dynamic info;
+                            //    bool source;
+                            //    propertyKeeper.GetPropertyValue((_Property)item, out info, false, out source);
+                            //    partMass = info;
+                            //}
+                            //if (item.Name == "Раздел спецификации")
+                            //{
+                            //    dynamic info;
+                            //    bool source;
+                            //    propertyKeeper.GetPropertyValue((_Property)item, out info, false, out source);
+                            //}
+                        }
+                        #endregion
+                        XLWorkbook excelWorkbook = new XLWorkbook(a);
+                        IXLWorksheet worksheet = excelWorkbook.Worksheet(1);
+                        #region Обозначение сборки
+                        worksheet.Cell(11, 1).Value = partDesignation;
+                        worksheet.Cell(11, 1).Style.Font.FontName = "Arial Cyr";
+                        worksheet.Cell(11, 1).Style.Font.Bold = false;
+                        worksheet.Cell(11, 1).Style.Font.Italic = false;
+                        worksheet.Cell(11, 1).Style.Font.FontSize = 11;
+                        worksheet.Cell(11, 1).Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                        worksheet.Cell(11, 1).Style.Alignment.SetVertical(XLAlignmentVerticalValues.Center);
+                        #endregion
+                        #region Наименование сборки
+                        worksheet.Cell(11, 4).Value = partName;
+                        worksheet.Cell(11, 4).Style.Font.FontName = "Arial Cyr";
+                        worksheet.Cell(11, 4).Style.Font.Italic = false;
+                        worksheet.Cell(11, 4).Style.Font.FontSize = 11;
+                        worksheet.Cell(11, 4).Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                        worksheet.Cell(11, 4).Style.Alignment.SetVertical(XLAlignmentVerticalValues.Center);
+                        #endregion
+
 
                         KompasObject kompas = (KompasObject)Marshal.GetActiveObject("KOMPAS.Application.5");
                         kompas.Visible = true;
@@ -266,11 +333,11 @@ namespace KompasDXF
 
                             IApplication _application = kompas.ksGetApplication7();
                             IKompasDocument3D kompasDocument3D = (IKompasDocument3D)_application.ActiveDocument;
-                            IPropertyMng propertyMng = (IPropertyMng)_application;
-                            var properties = propertyMng.GetProperties(kompasDocument3D);
-                            IPropertyKeeper propertyKeeper = (IPropertyKeeper)_part7;
+                            propertyMng = (IPropertyMng)_application;
+                            properties = propertyMng.GetProperties(kompasDocument3D);
+                            propertyKeeper = (IPropertyKeeper)_part7;
 
-                            string partName = "";
+                            string partSection = "";
                             foreach (IProperty item in properties)
                             {
                                 if (item.Name == "Раздел спецификации")
@@ -278,9 +345,10 @@ namespace KompasDXF
                                     dynamic info;
                                     bool source;
                                     propertyKeeper.GetPropertyValue((_Property)item, out info, false, out source);
-                                    partName = info;
+                                    partSection = info;
                                 }
                             }
+                            #region Заполняю коллекции                            
                             if (collectionParts.ContainsKey(ksPart.marking + " - " + ksPart.name)
                                 && ksPart.marking != ""
                                 && ksPart.excluded == false)
@@ -294,27 +362,42 @@ namespace KompasDXF
                             else if (collectionStandartDetails.ContainsKey(ksPart.name)
                                 //&& ksPart.marking == ""
                                 && ksPart.excluded == false
-                                && partName == "Стандартные изделия")
+                                && partSection == "Стандартные изделия")
                             {
                                 collectionStandartDetails[ksPart.name] = collectionStandartDetails[ksPart.name] + 1;
                             }
                             else if (collectionStandartDetails.ContainsKey(ksPart.name) == false
                                      //&& ksPart.marking == ""
                                      && ksPart.excluded == false
-                                     && partName == "Стандартные изделия")
+                                     && partSection == "Стандартные изделия")
                             { collectionStandartDetails.Add(ksPart.name, 1); }
                             else if (othertDetails.ContainsKey(ksPart.name)
                                 //&& ksPart.marking == ""
                                 && ksPart.excluded == false
-                                && partName == "Прочие изделия")
+                                && partSection == "Прочие изделия")
                             {
                                 othertDetails[ksPart.name] = othertDetails[ksPart.name] + 1;
                             }
                             else if (othertDetails.ContainsKey(ksPart.name) == false
                                      //&& ksPart.marking == ""
                                      && ksPart.excluded == false
-                                     && partName == "Прочие изделия")
+                                     && partSection == "Прочие изделия")
                             { othertDetails.Add(ksPart.name, 1); }
+                            #endregion
+
+                        }
+                        excelWorkbook.SaveAs(PathName + partDesignation + " - " + partName + ".xlsx");
+                        var message = string.Join(Environment.NewLine, collectionParts.ToArray());
+                        var message1 = string.Join(Environment.NewLine, collectionStandartDetails.ToArray());
+                        var message2 = string.Join(Environment.NewLine, othertDetails.ToArray());
+                        MessageBox.Show(collectionParts.Count.ToString());
+                        if (message1!="")
+                        {
+                            MessageBox.Show(message1);
+                        }
+                        if (message2!= "")
+                        {
+                            MessageBox.Show(message1);
                         }
                     }
                     break;
