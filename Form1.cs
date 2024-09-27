@@ -253,8 +253,6 @@ namespace KompasDXF
                         #region Вытаскиваем свойства сборки
                         string partName = "";
                         string partDesignation = "";
-                        //string partMaterial = "";
-                        //double partMass = 0;
                         IPropertyMng propertyMng = (IPropertyMng)application;
                         var properties = propertyMng.GetProperties(document3D);
                         IPropertyKeeper propertyKeeper = (IPropertyKeeper)part7;
@@ -274,31 +272,11 @@ namespace KompasDXF
                                 propertyKeeper.GetPropertyValue((_Property)item, out info, false, out source);
                                 partDesignation = info;
                             }
-                            //if (item.Name == "Материал")
-                            //{
-                            //    dynamic info;
-                            //    bool source;
-                            //    propertyKeeper.GetPropertyValue((_Property)item, out info, false, out source);
-                            //    partMaterial = info;
-                            //}
-                            //if (item.Name == "Масса")
-                            //{
-                            //    item.SignificantDigitsCount = 2;
-                            //    dynamic info;
-                            //    bool source;
-                            //    propertyKeeper.GetPropertyValue((_Property)item, out info, false, out source);
-                            //    partMass = info;
-                            //}
-                            //if (item.Name == "Раздел спецификации")
-                            //{
-                            //    dynamic info;
-                            //    bool source;
-                            //    propertyKeeper.GetPropertyValue((_Property)item, out info, false, out source);
-                            //}
                         }
                         #endregion
                         XLWorkbook excelWorkbook = new XLWorkbook(a);
                         IXLWorksheet worksheet = excelWorkbook.Worksheet(1);
+                        
                         #region Обозначение сборки
                         worksheet.Cell(11, 1).Value = partDesignation;
                         worksheet.Cell(11, 1).Style.Font.FontName = "Arial Cyr";
@@ -308,6 +286,7 @@ namespace KompasDXF
                         worksheet.Cell(11, 1).Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
                         worksheet.Cell(11, 1).Style.Alignment.SetVertical(XLAlignmentVerticalValues.Center);
                         #endregion
+
                         #region Наименование сборки
                         worksheet.Cell(11, 4).Value = partName;
                         worksheet.Cell(11, 4).Style.Font.FontName = "Arial Cyr";
@@ -316,7 +295,6 @@ namespace KompasDXF
                         worksheet.Cell(11, 4).Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
                         worksheet.Cell(11, 4).Style.Alignment.SetVertical(XLAlignmentVerticalValues.Center);
                         #endregion
-
 
                         KompasObject kompas = (KompasObject)Marshal.GetActiveObject("KOMPAS.Application.5");
                         kompas.Visible = true;
@@ -333,18 +311,18 @@ namespace KompasDXF
 
                             IApplication _application = kompas.ksGetApplication7();
                             IKompasDocument3D kompasDocument3D = (IKompasDocument3D)_application.ActiveDocument;
-                            propertyMng = (IPropertyMng)_application;
-                            properties = propertyMng.GetProperties(kompasDocument3D);
-                            propertyKeeper = (IPropertyKeeper)_part7;
+                            IPropertyMng _propertyMng = (IPropertyMng)_application;
+                            var _properties = _propertyMng.GetProperties(kompasDocument3D);
+                            IPropertyKeeper _propertyKeeper = (IPropertyKeeper)_part7;
 
                             string partSection = "";
-                            foreach (IProperty item in properties)
+                            foreach (IProperty item in _properties)
                             {
                                 if (item.Name == "Раздел спецификации")
                                 {
                                     dynamic info;
                                     bool source;
-                                    propertyKeeper.GetPropertyValue((_Property)item, out info, false, out source);
+                                    _propertyKeeper.GetPropertyValue((_Property)item, out info, false, out source);
                                     partSection = info;
                                 }
                             }
@@ -384,21 +362,50 @@ namespace KompasDXF
                                      && partSection == "Прочие изделия")
                             { othertDetails.Add(ksPart.name, 1); }
                             #endregion
+                        }
+                                                                        
+                        for (int i = 0; i < collectionParts.Count; i++)
+                        {
+                            worksheet.Cell(i + 15, 2).Value = collectionParts.ElementAt(i).Key;
+                            worksheet.Cell(i + 15, 2).Style.Font.FontName = "Arial Cyr";
+                            worksheet.Cell(i + 15, 2).Style.Font.Bold = false;
+                            worksheet.Cell(i + 15, 2).Style.Font.Italic = false;
+                            worksheet.Cell(i + 15, 2).Style.Font.FontSize = 10;
+                            worksheet.Cell(i + 15, 2).Style.Alignment.WrapText = true;
+                            worksheet.Cell(i + 15, 2).Style.Border.LeftBorder = XLBorderStyleValues.Thin;
+                            worksheet.Cell(i + 15, 2).Style.Border.RightBorder = XLBorderStyleValues.Thin;
+                            worksheet.Cell(i + 15, 2).Style.Border.TopBorder = XLBorderStyleValues.Thin;
+                            worksheet.Cell(i + 15, 2).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+                            worksheet.Cell(i + 15, 3).Style.Border.TopBorder = XLBorderStyleValues.Thin;
+                            worksheet.Cell(i + 15, 3).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+                            worksheet.Cell(i + 15, 2).Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left);
+                            worksheet.Cell(i + 15, 2).Style.Alignment.SetVertical(XLAlignmentVerticalValues.Center);
 
+                            worksheet.Cell(i + 15, 4).Value = collectionParts.ElementAt(i).Value;
+                            worksheet.Cell(i + 15, 4).Style.Font.FontName = "Arial Cyr";
+                            worksheet.Cell(i + 15, 4).Style.Font.Bold = false;
+                            worksheet.Cell(i + 15, 4).Style.Font.Italic = false;
+                            worksheet.Cell(i + 15, 4).Style.Font.FontSize = 10;                            
+                            worksheet.Cell(i + 15, 4).Style.Border.LeftBorder = XLBorderStyleValues.Thin;
+                            worksheet.Cell(i + 15, 4).Style.Border.RightBorder = XLBorderStyleValues.Thin;
+                            worksheet.Cell(i + 15, 4).Style.Border.TopBorder = XLBorderStyleValues.Thin;
+                            worksheet.Cell(i + 15, 4).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+                            worksheet.Cell(i + 15, 4).Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                            worksheet.Cell(i + 15, 4).Style.Alignment.SetVertical(XLAlignmentVerticalValues.Center);
                         }
                         excelWorkbook.SaveAs(PathName + partDesignation + " - " + partName + ".xlsx");
-                        var message = string.Join(Environment.NewLine, collectionParts.ToArray());
-                        var message1 = string.Join(Environment.NewLine, collectionStandartDetails.ToArray());
-                        var message2 = string.Join(Environment.NewLine, othertDetails.ToArray());
-                        MessageBox.Show(collectionParts.Count.ToString());
-                        if (message1!="")
-                        {
-                            MessageBox.Show(message1);
-                        }
-                        if (message2!= "")
-                        {
-                            MessageBox.Show(message1);
-                        }
+                        //var message = string.Join(Environment.NewLine, collectionParts.ToArray());
+                        //var message1 = string.Join(Environment.NewLine, collectionStandartDetails.ToArray());
+                        //var message2 = string.Join(Environment.NewLine, othertDetails.ToArray());
+                        //MessageBox.Show(collectionParts.Count.ToString());
+                        //if (message1!="")
+                        //{
+                        //    MessageBox.Show(message1);
+                        //}
+                        //if (message2!= "")
+                        //{
+                        //    MessageBox.Show(message1);
+                        //}
                     }
                     break;
                 case DocumentTypeEnum.ksDocumentTextual:
