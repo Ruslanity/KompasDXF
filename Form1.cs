@@ -363,9 +363,27 @@ namespace KompasDXF
                             { othertDetails.Add(ksPart.name, 1); }
                             #endregion
                         }
-                                                                        
+
+                        int quantityRows = collectionParts.Count + collectionStandartDetails.Count + 3;
+                        if (quantityRows % 2 != 0)
+                        {
+                            quantityRows = quantityRows + 1;
+                        }
+                        for (int i = 0; i < quantityRows/2; i++)
+                        {
+                            worksheet.Row(i + 15).InsertRowsBelow(1);
+                        }
+
                         for (int i = 0; i < collectionParts.Count; i++)
                         {
+                            //worksheet.Row(i + 15).InsertRowsBelow(1);
+                            worksheet.Row(i + 15).Height = 30;
+                            //string tempString = String.Format("B{0}, C{1}", i + 15, i + 15);
+                            worksheet.Range(String.Format("B{0}:C{1}", i + 15, i + 15)).Merge();
+                            //worksheet.Range(String.Format("B{0}:C{1}", i + 15, i + 15)).Style
+                            var groop = worksheet.Range(String.Format("B{0}:C{1}", i + 15, i + 15)).Merge();
+                            //var cell1 = 
+                            //worksheet.Range(String.Format("{0}, {1}", i + 15, 2)).Merge();
                             worksheet.Cell(i + 15, 2).Value = collectionParts.ElementAt(i).Key;
                             worksheet.Cell(i + 15, 2).Style.Font.FontName = "Arial Cyr";
                             worksheet.Cell(i + 15, 2).Style.Font.Bold = false;
@@ -395,13 +413,13 @@ namespace KompasDXF
                         }
                         excelWorkbook.SaveAs(PathName + partDesignation + " - " + partName + ".xlsx");
                         //var message = string.Join(Environment.NewLine, collectionParts.ToArray());
-                        //var message1 = string.Join(Environment.NewLine, collectionStandartDetails.ToArray());
+                        var message1 = string.Join(Environment.NewLine, collectionStandartDetails.ToArray());
                         //var message2 = string.Join(Environment.NewLine, othertDetails.ToArray());
                         //MessageBox.Show(collectionParts.Count.ToString());
-                        //if (message1!="")
-                        //{
-                        //    MessageBox.Show(message1);
-                        //}
+                        if (message1 != "")
+                        {
+                            MessageBox.Show(message1);
+                        }
                         //if (message2!= "")
                         //{
                         //    MessageBox.Show(message1);
