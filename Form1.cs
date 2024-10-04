@@ -364,62 +364,100 @@ namespace KompasDXF
                             #endregion
                         }
 
-                        int quantityRows = collectionParts.Count + collectionStandartDetails.Count + 3;
-                        if (quantityRows % 2 != 0)
-                        {
-                            quantityRows = quantityRows + 1;
-                        }
-                        for (int i = 0; i < quantityRows/2; i++)
+                        int quantityRows = Math.Max(collectionParts.Count, collectionStandartDetails.Count);
+                        
+                        for (int i = 0; i < quantityRows + othertDetails.Count; i++)
                         {
                             worksheet.Row(i + 15).InsertRowsBelow(1);
+                            worksheet.Row(i + 15).Height = 30;
                         }
 
-                        for (int i = 0; i < collectionParts.Count; i++)
-                        {
-                            //worksheet.Row(i + 15).InsertRowsBelow(1);
-                            worksheet.Row(i + 15).Height = 30;
-                            //string tempString = String.Format("B{0}, C{1}", i + 15, i + 15);
-                            worksheet.Range(String.Format("B{0}:C{1}", i + 15, i + 15)).Merge();
-                            //worksheet.Range(String.Format("B{0}:C{1}", i + 15, i + 15)).Style
-                            var groop = worksheet.Range(String.Format("B{0}:C{1}", i + 15, i + 15)).Merge();
-                            //var cell1 = 
-                            //worksheet.Range(String.Format("{0}, {1}", i + 15, 2)).Merge();
-                            worksheet.Cell(i + 15, 2).Value = collectionParts.ElementAt(i).Key;
-                            worksheet.Cell(i + 15, 2).Style.Font.FontName = "Arial Cyr";
-                            worksheet.Cell(i + 15, 2).Style.Font.Bold = false;
-                            worksheet.Cell(i + 15, 2).Style.Font.Italic = false;
-                            worksheet.Cell(i + 15, 2).Style.Font.FontSize = 10;
-                            worksheet.Cell(i + 15, 2).Style.Alignment.WrapText = true;
-                            worksheet.Cell(i + 15, 2).Style.Border.LeftBorder = XLBorderStyleValues.Thin;
-                            worksheet.Cell(i + 15, 2).Style.Border.RightBorder = XLBorderStyleValues.Thin;
-                            worksheet.Cell(i + 15, 2).Style.Border.TopBorder = XLBorderStyleValues.Thin;
-                            worksheet.Cell(i + 15, 2).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
-                            worksheet.Cell(i + 15, 3).Style.Border.TopBorder = XLBorderStyleValues.Thin;
-                            worksheet.Cell(i + 15, 3).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
-                            worksheet.Cell(i + 15, 2).Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left);
-                            worksheet.Cell(i + 15, 2).Style.Alignment.SetVertical(XLAlignmentVerticalValues.Center);
+                        #region Задаю стиль ячеек входящих деталей
+                        var myCustomStyle = XLWorkbook.DefaultStyle;
+                        myCustomStyle.Font.FontName = "Arial Cyr";
+                        myCustomStyle.Font.Bold = false;
+                        myCustomStyle.Font.Italic = false;
+                        myCustomStyle.Font.FontSize = 10;
+                        myCustomStyle.Alignment.WrapText = true;
+                        myCustomStyle.Border.LeftBorder = XLBorderStyleValues.Thin;
+                        myCustomStyle.Border.RightBorder = XLBorderStyleValues.Thin;
+                        myCustomStyle.Border.TopBorder = XLBorderStyleValues.Thin;
+                        myCustomStyle.Border.BottomBorder = XLBorderStyleValues.Thin;
+                        myCustomStyle.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left);
+                        myCustomStyle.Alignment.SetVertical(XLAlignmentVerticalValues.Center);
+                        #endregion
 
-                            worksheet.Cell(i + 15, 4).Value = collectionParts.ElementAt(i).Value;
-                            worksheet.Cell(i + 15, 4).Style.Font.FontName = "Arial Cyr";
-                            worksheet.Cell(i + 15, 4).Style.Font.Bold = false;
-                            worksheet.Cell(i + 15, 4).Style.Font.Italic = false;
-                            worksheet.Cell(i + 15, 4).Style.Font.FontSize = 10;                            
-                            worksheet.Cell(i + 15, 4).Style.Border.LeftBorder = XLBorderStyleValues.Thin;
-                            worksheet.Cell(i + 15, 4).Style.Border.RightBorder = XLBorderStyleValues.Thin;
-                            worksheet.Cell(i + 15, 4).Style.Border.TopBorder = XLBorderStyleValues.Thin;
-                            worksheet.Cell(i + 15, 4).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
-                            worksheet.Cell(i + 15, 4).Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
-                            worksheet.Cell(i + 15, 4).Style.Alignment.SetVertical(XLAlignmentVerticalValues.Center);
+                        #region Задаю стиль ячеек кол-ва деталей
+                        var myCustomStyle2 = XLWorkbook.DefaultStyle;
+                        myCustomStyle2.Font.FontName = "Arial Cyr";
+                        myCustomStyle2.Font.Bold = false;
+                        myCustomStyle2.Font.Italic = false;
+                        myCustomStyle2.Font.FontSize = 10;
+                        myCustomStyle2.Border.LeftBorder = XLBorderStyleValues.Thin;
+                        myCustomStyle2.Border.RightBorder = XLBorderStyleValues.Thin;
+                        myCustomStyle2.Border.TopBorder = XLBorderStyleValues.Thin;
+                        myCustomStyle2.Border.BottomBorder = XLBorderStyleValues.Thin;
+                        myCustomStyle2.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                        myCustomStyle2.Alignment.SetVertical(XLAlignmentVerticalValues.Center);
+                        #endregion
+
+                        for (int i = 0; i < collectionParts.Count; i++)
+                        {                            
+                            IXLRange groop = worksheet.Range(String.Format("B{0}:D{1}", i + 15, i + 15)).Merge();
+                            groop.Style = myCustomStyle;
+                            groop.Value = collectionParts.ElementAt(i).Key;
+
+                            worksheet.Cell(i + 15, 5).Value = collectionParts.ElementAt(i).Value;
+                            worksheet.Cell(i + 15, 5).Style = myCustomStyle2;
+                        }
+                        if (collectionStandartDetails.Count != 0)
+                        {
+                            #region Шапка таблички
+                            IXLRange groop = worksheet.Range("G13:I13").Merge();
+                            groop.Value = "Метизы, входящие в сборку";
+                            groop.Style.Font.FontName = "Arial Cyr";
+                            groop.Style.Font.Bold = true;
+                            groop.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                            IXLRange groop2 = worksheet.Range("G14:H14").Merge();
+                            groop2.Value = "№ Деталей";
+                            groop2.Style = myCustomStyle2;
+                            worksheet.Cell(14, 9).Value = "Кол-во";
+                            worksheet.Cell(14, 9).Style = myCustomStyle2;
+                            #endregion
+                            for (int i = 0; i < collectionStandartDetails.Count; i++)
+                            {
+                                IXLRange groop3 = worksheet.Range(String.Format("G{0}:H{1}", i + 15, i + 15)).Merge();
+                                groop3.Style = myCustomStyle;
+                                groop3.Value = collectionStandartDetails.ElementAt(i).Key;
+                                worksheet.Cell(i + 15, 9).Value = collectionStandartDetails.ElementAt(i).Value;
+                                worksheet.Cell(i + 15, 9).Style = myCustomStyle2;
+                            }
+                        }
+                        if (othertDetails.Count != 0)
+                        {
+                            #region Шапка таблички
+                            IXLRange groop = worksheet.Range(String.Format("B{0}:E{1}", collectionParts.Count + 16, collectionParts.Count + 16)).Merge();
+                            groop.Value = "Прочие материалы:";
+                            groop.Style.Font.FontName = "Arial Cyr";
+                            groop.Style.Font.Bold = true;
+                            groop.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);                            
+                            IXLRange groop2 = worksheet.Range(String.Format("B{0}:D{1}", collectionParts.Count + 17, collectionParts.Count + 17)).Merge();
+                            groop2.Value = "№ Деталей";
+                            groop2.Style = myCustomStyle2;
+                            worksheet.Cell(collectionParts.Count + 17, 5).Value = "Кол-во";
+                            worksheet.Cell(collectionParts.Count + 17, 5).Style = myCustomStyle2;
+                            #endregion
+
                         }
                         excelWorkbook.SaveAs(PathName + partDesignation + " - " + partName + ".xlsx");
                         //var message = string.Join(Environment.NewLine, collectionParts.ToArray());
-                        var message1 = string.Join(Environment.NewLine, collectionStandartDetails.ToArray());
+                        //var message1 = string.Join(Environment.NewLine, collectionStandartDetails.ToArray());
                         //var message2 = string.Join(Environment.NewLine, othertDetails.ToArray());
                         //MessageBox.Show(collectionParts.Count.ToString());
-                        if (message1 != "")
-                        {
-                            MessageBox.Show(message1);
-                        }
+                        //if (message1 != "")
+                        //{
+                        //    MessageBox.Show(message1);
+                        //}
                         //if (message2!= "")
                         //{
                         //    MessageBox.Show(message1);
