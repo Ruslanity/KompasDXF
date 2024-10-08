@@ -31,7 +31,7 @@ namespace KompasDXF
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.CreateDXF = new System.Windows.Forms.Button();
-            this.button2 = new System.Windows.Forms.Button();
+            this.CreatePDF = new System.Windows.Forms.Button();
             this.CreateExcel = new System.Windows.Forms.Button();
             this.button4 = new System.Windows.Forms.Button();
             this.button5 = new System.Windows.Forms.Button();
@@ -47,15 +47,15 @@ namespace KompasDXF
             this.CreateDXF.UseVisualStyleBackColor = true;
             this.CreateDXF.Click += new System.EventHandler(this.createDXF_Click);
             // 
-            // button2
+            // CreatePDF
             // 
-            this.button2.Location = new System.Drawing.Point(13, 43);
-            this.button2.Name = "button2";
-            this.button2.Size = new System.Drawing.Size(105, 23);
-            this.button2.TabIndex = 1;
-            this.button2.Text = "Создать PDF";
-            this.button2.UseVisualStyleBackColor = true;
-            this.button2.Click += new System.EventHandler(this.button2_Click);
+            this.CreatePDF.Location = new System.Drawing.Point(13, 43);
+            this.CreatePDF.Name = "CreatePDF";
+            this.CreatePDF.Size = new System.Drawing.Size(105, 23);
+            this.CreatePDF.TabIndex = 1;
+            this.CreatePDF.Text = "Создать PDF";
+            this.CreatePDF.UseVisualStyleBackColor = true;
+            this.CreatePDF.Click += new System.EventHandler(this.createPDF_Click);
             // 
             // CreateExcel
             // 
@@ -95,7 +95,7 @@ namespace KompasDXF
             this.Controls.Add(this.button5);
             this.Controls.Add(this.button4);
             this.Controls.Add(this.CreateExcel);
-            this.Controls.Add(this.button2);
+            this.Controls.Add(this.CreatePDF);
             this.Controls.Add(this.CreateDXF);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
@@ -109,7 +109,7 @@ namespace KompasDXF
         #endregion
 
         private System.Windows.Forms.Button CreateDXF;
-        private System.Windows.Forms.Button button2;
+        private System.Windows.Forms.Button CreatePDF;
         private System.Windows.Forms.Button CreateExcel;
         private System.Windows.Forms.Button button4;
         private System.Windows.Forms.Button button5;

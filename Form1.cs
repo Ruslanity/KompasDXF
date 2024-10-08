@@ -57,7 +57,7 @@ namespace KompasDXF
             IKompasDocument2D kompasDocument2D = (IKompasDocument2D)application.ActiveDocument;
 
             //Скрываем все сообщения системы - Да
-            application.HideMessage = ksHideMessageEnum.ksHideMessageYes;
+            //application.HideMessage = ksHideMessageEnum.ksHideMessageYes;
 
             IViewsAndLayersManager viewsAndLayersManager = kompasDocument2D.ViewsAndLayersManager;
             IViews views = viewsAndLayersManager.Views;
@@ -96,14 +96,14 @@ namespace KompasDXF
             pView.Update();
             document2D.ksRebuildDocument();
             //Скрываем все сообщения системы - Нет
-            application.HideMessage = ksHideMessageEnum.ksHideMessageNo;
+            //application.HideMessage = ksHideMessageEnum.ksHideMessageNo;
             document2D.ksSaveDocument(save_to_name);
 
             IKompasDocument kompasDocument = (IKompasDocument)application.ActiveDocument;
             kompasDocument.Close(DocumentCloseOptions.kdDoNotSaveChanges);
         }
 
-        private void button2_Click(object sender, EventArgs e)
+        private void createPDF_Click(object sender, EventArgs e)
         {
             IApplication application = (IApplication)Marshal.GetActiveObject("Kompas.Application.7");
             IKompasDocument3D document3D = (IKompasDocument3D)application.ActiveDocument;
@@ -114,7 +114,7 @@ namespace KompasDXF
             if (fileEntries.Contains(drawingName))
             {
                 //Скрываем все сообщения системы - Да
-                application.HideMessage = ksHideMessageEnum.ksHideMessageYes;
+                //application.HideMessage = ksHideMessageEnum.ksHideMessageYes;
                 //IKompasDocument2D kDoc = (IKompasDocument2D)application.Documents.Open(drawingName, true, false);
                 //IKompasDocument2D1 kompasDocument2D1 = (IKompasDocument2D1)kDoc;
                 //kompasDocument2D1.RebuildDocument();
@@ -123,10 +123,9 @@ namespace KompasDXF
                     part7.FileName.Remove(part7.FileName.Length - 4) + ".pdf", 0, false);
 
                 //Скрываем все сообщения системы - Нет
-                application.HideMessage = ksHideMessageEnum.ksHideMessageNo;
+                //application.HideMessage = ksHideMessageEnum.ksHideMessageNo;
             }
-            application = (IApplication)Marshal.GetActiveObject("Kompas.Application.7");
-            document3D = (IKompasDocument3D)application.ActiveDocument;            
+            //Marshal.ReleaseComObject(application);
         }
 
         private void createExcel_Click(object sender, EventArgs e)
