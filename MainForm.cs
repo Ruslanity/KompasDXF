@@ -17,21 +17,29 @@ using Kompas6Constants;
 using KompasAPI7;
 using DocumentFormat.OpenXml;
 
-namespace KompasDXF
+namespace Multitool
 {
-    public partial class Form1 : Form
+    public partial class MainForm : Form
     {
-        public Form1()
+        private static MainForm instance;
+
+        public static MainForm GetInstance() //реализация Singleton
         {
+            if (instance == null || instance.IsDisposed)
+            {
+                instance = new MainForm();
+            }
+            return instance;
+        }
+
+        public MainForm()
+        {
+            TopMost = true;
             InitializeComponent();
+            comboBox1.SelectedIndex = 0;
         }
 
-        private void Form1_Load(object sender, EventArgs e)
-        {
-
-        }
-
-        private void createDXF_Click(object sender, EventArgs e)
+        private void СreateDXF_Click(object sender, EventArgs e)
         {
             IApplication application = (IApplication)Marshal.GetActiveObject("Kompas.Application.7");
             IKompasDocument3D document3D = (IKompasDocument3D)application.ActiveDocument;
@@ -56,8 +64,8 @@ namespace KompasDXF
 
             IKompasDocument2D kompasDocument2D = (IKompasDocument2D)application.ActiveDocument;
 
-            //Скрываем все сообщения системы - Да
-            //application.HideMessage = ksHideMessageEnum.ksHideMessageYes;
+            //Скрываем все сообщения системы -Да
+            application.HideMessage = ksHideMessageEnum.ksHideMessageYes;
 
             IViewsAndLayersManager viewsAndLayersManager = kompasDocument2D.ViewsAndLayersManager;
             IViews views = viewsAndLayersManager.Views;
@@ -70,7 +78,7 @@ namespace KompasDXF
             int indexPart = embodimentsManager.CurrentEmbodimentIndex;
 
             IEmbodimentsManager emb = (IEmbodimentsManager)pAssociationView;
-            emb.SetCurrentEmbodiment(indexPart);
+            emb.SetCurrentEmbodiment(part7.Marking);
 
             pAssociationView.Angle = 0;
             pAssociationView.X = 0;
@@ -95,15 +103,15 @@ namespace KompasDXF
 
             pView.Update();
             document2D.ksRebuildDocument();
-            //Скрываем все сообщения системы - Нет
-            //application.HideMessage = ksHideMessageEnum.ksHideMessageNo;
+            //Скрываем все сообщения системы -Нет
+            application.HideMessage = ksHideMessageEnum.ksShowMessage;
             document2D.ksSaveDocument(save_to_name);
 
             IKompasDocument kompasDocument = (IKompasDocument)application.ActiveDocument;
             kompasDocument.Close(DocumentCloseOptions.kdDoNotSaveChanges);
         }
 
-        private void createPDF_Click(object sender, EventArgs e)
+        private void СreatePDF_Click(object sender, EventArgs e)
         {
             IApplication application = (IApplication)Marshal.GetActiveObject("Kompas.Application.7");
             IKompasDocument3D document3D = (IKompasDocument3D)application.ActiveDocument;
@@ -128,16 +136,16 @@ namespace KompasDXF
             if (fileEntries.Contains(drawingName))
             {
                 //Скрываем все сообщения системы - Да
-                //application.HideMessage = ksHideMessageEnum.ksHideMessageYes;
+                application.HideMessage = ksHideMessageEnum.ksHideMessageYes;
                 //IKompasDocument2D kDoc = (IKompasDocument2D)application.Documents.Open(drawingName, true, false);
                 //IKompasDocument2D1 kompasDocument2D1 = (IKompasDocument2D1)kDoc;
                 //kompasDocument2D1.RebuildDocument();
                 Converter сonverter = application.Converter[@"C:\\Program Files\\ASCON\\KOMPAS-3D v18\\Bin\Pdf2d.dll"];
                 сonverter.Convert(part7.FileName.Remove(part7.FileName.Length - 4) + ".cdw",
-                    filenamePDF, 0, false);
+                    filenamePDF, 0, true);
 
                 //Скрываем все сообщения системы - Нет
-                //application.HideMessage = ksHideMessageEnum.ksHideMessageNo;
+                application.HideMessage = ksHideMessageEnum.ksHideMessageNo;
             }
             else
             {
@@ -145,7 +153,7 @@ namespace KompasDXF
             }
         }
 
-        private void createExcel_Click(object sender, EventArgs e)
+        private void СreateExcel_Click(object sender, EventArgs e)
         {
             IApplication application = (IApplication)Marshal.GetActiveObject("Kompas.Application.7");
             IKompasDocument3D document3D = (IKompasDocument3D)application.ActiveDocument;
@@ -163,7 +171,7 @@ namespace KompasDXF
                     break;
                 case DocumentTypeEnum.ksDocumentPart:
                     {
-                        string a = Path.Combine(Environment.CurrentDirectory, "PartTemplate.xlsx");
+                        string a = Path.Combine(System.Windows.Forms.Application.StartupPath.ToString(), "PartTemplate.xlsx");
                         string PathName = document3D.Path;
 
                         #region Вытаскиваем свойства
@@ -256,7 +264,7 @@ namespace KompasDXF
                             string NameProgramm = t.Value + "mm_" + partDesignation.Remove(0, 3);
                             worksheet.Cell(18, 3).Value = NameProgramm;
                             worksheet.Cell(18, 3).Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Left);
-                            worksheet.Cell(11, 7).Value = t.Value;
+                            worksheet.Cell(11, 8).Value = t.Value;
                         }
                         #endregion
                         excelWorkbook.SaveAs(PathName + partDesignation + " - " + partName + ".xlsx");
@@ -264,7 +272,16 @@ namespace KompasDXF
                     break;
                 case DocumentTypeEnum.ksDocumentAssembly:
                     {
-                        string a = Path.Combine(Environment.CurrentDirectory, "AssemblyTemplate.xlsx");
+                        string a = "";
+                        if (comboBox1.Text == "Сварочный")
+                        {
+                            a = Path.Combine(System.Windows.Forms.Application.StartupPath.ToString(), "AssemblyTemplateWeld.xlsx");
+                        }
+                        if (comboBox1.Text == "Метизный")
+                        {
+                            a = Path.Combine(System.Windows.Forms.Application.StartupPath.ToString(), "AssemblyTemplate.xlsx");
+                        }
+
                         string PathName = document3D.Path;
                         #region Вытаскиваем свойства сборки
                         string partName = "";
@@ -527,7 +544,14 @@ namespace KompasDXF
                     string otherPart = @"'<property id=""SPCSection"" expression="""" fromSource=""false"" format=""{$sectionName}"">''''<property id=""sectionName"" value=""Прочие изделия"" type=""string"" />''''<property id=""sectionNumb"" value=""30"" type=""int"" />'";
                     string detal = @"'<property id=""SPCSection"" expression="""" fromSource=""false"" format=""{$sectionName}"">''''<property id=""sectionName"" value=""Детали"" type=""string"" />''''<property id=""sectionNumb"" value=""20"" type=""int"" />'";
                     string assembly = @"'<property id=""SPCSection"" expression="""" fromSource=""false"" format=""{$sectionName}"">''''<property id=""sectionName"" value=""Сборочные единицы"" type=""string"" />''''<property id=""sectionNumb"" value=""15"" type=""int"" />'";
-                    propertyKeeper.SetComplexPropertyValue((_Property)item, detal);
+                    if (part7.Detail==true)
+                    {
+                        propertyKeeper.SetComplexPropertyValue((_Property)item, detal);
+                    }
+                    else
+                    { 
+                        propertyKeeper.SetComplexPropertyValue((_Property)item, assembly);
+                    }
                 }
             }
             #endregion
@@ -575,7 +599,7 @@ namespace KompasDXF
 
             IFeature7 _feature7 = (IFeature7)document3D.TopPart;
             var _t = _feature7.Variable[false, true, "SM_Thickness"];
-
+            
             foreach (IFeature7 item in featCol)
             {
                 if (item.Name.Contains("Листовое тело:"))
@@ -589,7 +613,11 @@ namespace KompasDXF
                     }
                 }
             }
-            if (t != _t.Value) { MessageBox.Show("Толщина глобальной переменной и толщина листового тела не совпадают"); }
+            if (_t!=null)
+            {
+                if (t != _t.Value) { MessageBox.Show("Толщина глобальной переменной и толщина листового тела не совпадают"); }
+            }
+            
             #endregion
         }
 
@@ -613,19 +641,9 @@ namespace KompasDXF
                                 sheetMetalBody.Thickness.ToString(CultureInfo.CreateSpecificCulture("en-GB")) + "mm_" + part7.Marking.Remove(0, 3) + ".pdf";          
             }
             else { filenamePDF = part7.FileName.Remove(part7.FileName.Length - 4) + ".pdf"; }
-
-
-
+                        
             MessageBox.Show(filenamePDF);
-            //KompasObject kompas = (KompasObject)Marshal.GetActiveObject("KOMPAS.Application.5");
-            //kompas.Visible = true;
-            //kompas.ActivateControllerAPI();
-            //ksDocument3D ksDocument3D = (ksDocument3D)kompas.ActiveDocument3D();
-            //ksPartCollection _ksPartCollection = ksDocument3D.PartCollection(true);
-            //for (int i = 0; i < _ksPartCollection.GetCount(); i++)
-            //{
-
-            //}
         }
+                
     }
 }

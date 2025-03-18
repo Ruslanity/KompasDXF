@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.35130.168
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KompasDXF", "KompasDXF.csproj", "{36A84181-2152-4DEC-85D3-469FBF437C77}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Multitool", "Multitool.csproj", "{36A84181-2152-4DEC-85D3-469FBF437C77}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WindowsFormsApp1", "..\WindowsFormsApp1\WindowsFormsApp1.csproj", "{38E29668-5283-44BC-B588-A6083E480B64}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WindowsFormsApp1", "..\WindowsFormsApp1\WindowsFormsApp1.csproj", "{AFFEE94A-D7F2-4E7B-9260-E6AFE8AECB4C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,10 +17,10 @@ Global
 		{36A84181-2152-4DEC-85D3-469FBF437C77}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{36A84181-2152-4DEC-85D3-469FBF437C77}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{36A84181-2152-4DEC-85D3-469FBF437C77}.Release|Any CPU.Build.0 = Release|Any CPU
-		{38E29668-5283-44BC-B588-A6083E480B64}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{38E29668-5283-44BC-B588-A6083E480B64}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{38E29668-5283-44BC-B588-A6083E480B64}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{38E29668-5283-44BC-B588-A6083E480B64}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AFFEE94A-D7F2-4E7B-9260-E6AFE8AECB4C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AFFEE94A-D7F2-4E7B-9260-E6AFE8AECB4C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AFFEE94A-D7F2-4E7B-9260-E6AFE8AECB4C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AFFEE94A-D7F2-4E7B-9260-E6AFE8AECB4C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
