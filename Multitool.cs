@@ -1,12 +1,7 @@
-﻿using Kompas6API5;
-using KompasAPI7;
-using Microsoft.Win32;
+﻿using Microsoft.Win32;
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+using System.Management;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Windows.Forms;
 
 namespace Multitool
@@ -21,7 +16,32 @@ namespace Multitool
         // Головная функция библиотеки
         public void ExternalRunCommand([In] short command, [In] short mode, [In, MarshalAs(UnmanagedType.IDispatch)] object kompas_)
         {
-            MainForm.GetInstance().Show();
+            if (LicenseValidator.IsValid(out string errorMessage))
+            {
+                MainForm.GetInstance().Show();
+            }
+            else
+            {
+                MessageBox.Show(errorMessage);
+            }
+        }
+
+        public string GenerateMS()
+        {
+            string motherboardSerial = string.Empty;
+            try
+            {
+                ManagementObjectSearcher searcher = new ManagementObjectSearcher("SELECT SerialNumber FROM Win32_BaseBoard");
+                foreach (ManagementObject obj in searcher.Get())
+                {
+                    motherboardSerial = obj["SerialNumber"].ToString();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+            return motherboardSerial;
         }
 
         #region COM Registration

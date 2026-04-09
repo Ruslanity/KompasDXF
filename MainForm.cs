@@ -16,12 +16,20 @@ using Kompas6API5;
 using Kompas6Constants;
 using KompasAPI7;
 using DocumentFormat.OpenXml;
+using System.Diagnostics;
+using System.Xml;
+using PdfiumViewer;
 
 namespace Multitool
 {
     public partial class MainForm : Form
     {
         private static MainForm instance;
+        private DxfViewerControl dxfViewer;
+        private Label label;
+        private Settings settings;
+        private PdfViewerControl pdfControl;
+
 
         public static MainForm GetInstance() //реализация Singleton
         {
@@ -30,6 +38,29 @@ namespace Multitool
                 instance = new MainForm();
             }
             return instance;
+        }
+
+        public class SettingsData
+        {
+            public string textBox_DXF { get; set; }
+            public string textBox_PDF { get; set; }
+            //public string textBox_CUT_SPEED { get; set; }
+        }
+
+        public static string GetSettingsFilePath()
+        {
+            string dir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "Rusik Edition", "Multitool");
+            Directory.CreateDirectory(dir);
+            return Path.Combine(dir, "Settings.xml");
+        }
+
+        public static string GetTemplateDir()
+        {
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                "Rusik Edition", "Multitool");
         }
 
         public MainForm()
@@ -41,6 +72,25 @@ namespace Multitool
 
         private void СreateDXF_Click(object sender, EventArgs e)
         {
+            string save_to_name2 = null;
+            string ucdName = null;
+            //if (eDrawForm != null)
+            //{
+            //    eDrawForm.Dispose();
+            //}
+            if (pdfControl != null)
+            {
+                tableLayoutPanel1.Controls.Remove(pdfControl);
+                pdfControl.Dispose();
+                pdfControl = null;
+            }
+            if (dxfViewer != null)
+            {
+                tableLayoutPanel1.Controls.Remove(dxfViewer);
+                dxfViewer.Dispose();
+                dxfViewer = null;
+            }
+
             IApplication application = (IApplication)Marshal.GetActiveObject("Kompas.Application.7");
             IKompasDocument3D document3D = (IKompasDocument3D)application.ActiveDocument;
             IPart7 part7 = document3D.TopPart;
@@ -53,6 +103,40 @@ namespace Multitool
 
             string save_to_name = fi.DirectoryName + "\\" +
                 sheetMetalBody.Thickness.ToString(CultureInfo.CreateSpecificCulture("en-GB")) + "mm_" + part7.Marking.Remove(0, 3) + ".dxf";
+
+            #region Создаю путь куда еще будет копироваться DXF
+
+            string filePath = GetSettingsFilePath();
+
+            if (System.IO.File.Exists(filePath))
+            {
+                var serializer = new System.Xml.Serialization.XmlSerializer(typeof(SettingsData));
+                using (var reader = new System.IO.StreamReader(filePath))
+                {
+                    var loadedData = (SettingsData)serializer.Deserialize(reader);
+                    if (!string.IsNullOrEmpty(loadedData.textBox_DXF))
+                    {
+                        if (Directory.Exists(loadedData.textBox_DXF))
+                        {
+                            string dxfBase = sheetMetalBody.Thickness.ToString(CultureInfo.CreateSpecificCulture("en-GB")) + "mm_" + part7.Marking.Remove(0, 3);
+                            save_to_name2 = Path.Combine(loadedData.textBox_DXF, dxfBase + ".dxf");
+                            ucdName = Path.Combine(loadedData.textBox_DXF, dxfBase + ".ucd");
+                        }
+                        else
+                        {
+                            MessageBox.Show("Папка для DXF не найдена:\n" + loadedData.textBox_DXF);
+                        }
+                    }
+                }
+            }
+            #endregion
+
+            #region Удаляю ucd
+            if (System.IO.File.Exists(ucdName))
+            {
+                System.IO.File.Delete(ucdName);
+            }
+            #endregion
 
             KompasObject kompas = (KompasObject)Marshal.GetActiveObject("KOMPAS.Application.5");
 
@@ -73,6 +157,15 @@ namespace Multitool
 
             IAssociationView pAssociationView = pView as IAssociationView;
             pAssociationView.SourceFileName = part7.FileName;
+
+            //скрываю оси при создании dxf
+            IAssociationViewElements associationViewElements = (IAssociationViewElements)pAssociationView;
+            associationViewElements.CreateCircularCentres = false;
+            associationViewElements.CreateLinearCentres = false;
+            associationViewElements.CreateAxis = false;
+            associationViewElements.CreateCentresMarkers = false;
+            associationViewElements.ProjectAxis = false;
+            associationViewElements.ProjectDesTexts = false;
 
             IEmbodimentsManager embodimentsManager = (IEmbodimentsManager)document3D;
             int indexPart = embodimentsManager.CurrentEmbodimentIndex;
@@ -106,10 +199,18 @@ namespace Multitool
             //Скрываем все сообщения системы -Нет
             application.HideMessage = ksHideMessageEnum.ksShowMessage;
             document2D.ksSaveDocument(save_to_name);
+            if (save_to_name2 != null)
+                document2D.ksSaveDocument(save_to_name2);
 
             IKompasDocument kompasDocument = (IKompasDocument)application.ActiveDocument;
             kompasDocument.Close(DocumentCloseOptions.kdDoNotSaveChanges);
+            kompas = null;
+            application = null;
+
+            OpenDxfInViewer(save_to_name);
+            
         }
+
 
         private void СreatePDF_Click(object sender, EventArgs e)
         {
@@ -121,36 +222,125 @@ namespace Multitool
             ISheetMetalBodies sheetMetalBodies = sheetMetalContainer.SheetMetalBodies;
             ISheetMetalBody sheetMetalBody = sheetMetalBodies.SheetMetalBody[0];
 
-            string drawingName = /*document3D.PathName +*/ part7.FileName.Remove(part7.FileName.Length - 4) + ".cdw";
-            string[] fileEntries = Directory.GetFiles(document3D.Path);
-            string filenamePDF = "";
+            string drawingPath = /*document3D.PathName +*/ part7.FileName.Remove(part7.FileName.Length - 4) + ".cdw";
+            string drawingName = Path.GetFileName(drawingPath);
+            string drawingName2 = /*document3D.PathName +*/ part7.Marking + " - " + part7.Name + ".cdw";
+            string folderName = Path.GetDirectoryName(drawingPath);
 
+            #region Поиск номера исполнения
+            IEmbodimentsManager embodimentsManager = (IEmbodimentsManager)document3D;
+            int indexPart = embodimentsManager.CurrentEmbodimentIndex;
+            string basename = embodimentsManager.GetCurrentEmbodimentMarking(ksVariantMarkingTypeEnum.ksVMBaseMarking, false);
+            //IEmbodimentsManager embodimentsManager = (IEmbodimentsManager)part7;
+            //var embodiment = embodimentsManager.GetCurrentEmbodimentMarking(ksVariantMarkingTypeEnum.ksVMEmbodimentNumber, false);
+            //расчет индекса
+            string indexPartString = (indexPart - 1).ToString("D2");
+            string drawingName3 = String.Empty;
             if (document3D.DocumentType == DocumentTypeEnum.ksDocumentPart && sheetMetalBody != null)
             {
-                FileInfo fi = new FileInfo(part7.FileName);
-                filenamePDF = fi.DirectoryName + "\\" +
-                            sheetMetalBody.Thickness.ToString(CultureInfo.CreateSpecificCulture("en-GB")) + "mm_" + part7.Marking.Remove(0, 3) + ".pdf";
-            }
-            else { filenamePDF = part7.FileName.Remove(part7.FileName.Length - 4) + ".pdf"; }
-
-            if (fileEntries.Contains(drawingName))
-            {
-                //Скрываем все сообщения системы - Да
-                application.HideMessage = ksHideMessageEnum.ksHideMessageYes;
-                //IKompasDocument2D kDoc = (IKompasDocument2D)application.Documents.Open(drawingName, true, false);
-                //IKompasDocument2D1 kompasDocument2D1 = (IKompasDocument2D1)kDoc;
-                //kompasDocument2D1.RebuildDocument();
-                Converter сonverter = application.Converter[@"C:\\Program Files\\ASCON\\KOMPAS-3D v18\\Bin\Pdf2d.dll"];
-                сonverter.Convert(part7.FileName.Remove(part7.FileName.Length - 4) + ".cdw",
-                    filenamePDF, 0, true);
-
-                //Скрываем все сообщения системы - Нет
-                application.HideMessage = ksHideMessageEnum.ksHideMessageNo;
+                drawingName3 = basename + "-" + indexPartString + " - " + part7.Name + ".cdw";
             }
             else
             {
+                drawingName3 = basename + "-" + indexPartString + " СБ" + " - " + part7.Name + ".cdw";
+            }
+            #endregion
+
+            string[] fileNames =
+            {
+                drawingName2,
+                drawingName3,
+                drawingName
+            };
+
+            string[] fileEntries = Directory.GetFiles(document3D.Path);
+
+            // Определяем путь к PDF рядом с моделью (не зависит от настроек)
+            string filenamePDF;
+            string pdfFileName;
+            if (document3D.DocumentType == DocumentTypeEnum.ksDocumentPart && sheetMetalBody != null)
+            {
+                pdfFileName = sheetMetalBody.Thickness.ToString(CultureInfo.CreateSpecificCulture("en-GB")) + "mm_" + part7.Marking.Remove(0, 3) + ".pdf";
+                filenamePDF = Path.Combine(Path.GetDirectoryName(part7.FileName), pdfFileName);
+            }
+            else
+            {
+                pdfFileName = part7.Marking + " - " + part7.Name + ".pdf";
+                filenamePDF = Path.Combine(folderName, pdfFileName);
+            }
+
+            #region Путь куда копировать
+            string copyfilenamePDF = String.Empty;
+            string filePath = GetSettingsFilePath();
+            if (System.IO.File.Exists(filePath))
+            {
+                var serializer = new System.Xml.Serialization.XmlSerializer(typeof(SettingsData));
+                using (var reader = new System.IO.StreamReader(filePath))
+                {
+                    var loadedData = (SettingsData)serializer.Deserialize(reader);
+                    if (!string.IsNullOrEmpty(loadedData.textBox_PDF))
+                    {
+                        if (Directory.Exists(loadedData.textBox_PDF))
+                            copyfilenamePDF = Path.Combine(loadedData.textBox_PDF, pdfFileName);
+                        else
+                            MessageBox.Show("Папка для PDF не найдена:\n" + loadedData.textBox_PDF);
+                    }
+                }
+            }
+            #endregion
+
+            
+
+            bool fileExists = false;
+            foreach (var fileName in fileNames)
+            {
+                string fullPath = Path.Combine(folderName, fileName);
+                if (fileEntries.Contains(fullPath))
+                {
+
+                    application.HideMessage = ksHideMessageEnum.ksHideMessageNo;
+                    Converter сonverter = application.Converter[@"C:\Program Files\ASCON\KOMPAS-3D v22\Bin\Pdf2d.dll"];
+                    сonverter.Convert(fullPath, filenamePDF, 0, true);
+                    if (!string.IsNullOrEmpty(copyfilenamePDF))
+                        сonverter.Convert(fullPath, copyfilenamePDF, 0, true);
+                    application.HideMessage = ksHideMessageEnum.ksShowMessage;
+
+                    #region Тут я показываю PDF в контроле
+                    if (dxfViewer != null)
+                    {
+                        tableLayoutPanel1.Controls.Remove(dxfViewer);
+                        dxfViewer.Dispose();
+                        dxfViewer = null;
+                    }
+                    if (pdfControl != null)
+                    {
+                        tableLayoutPanel1.Controls.Remove(pdfControl);
+                        pdfControl.Dispose();
+                    }
+                    this.pdfControl = new PdfViewerControl();
+                    tableLayoutPanel1.Controls.Add(pdfControl, 1, 0);
+                    tableLayoutPanel1.SetRowSpan(pdfControl, 9);
+                    pdfControl.Dock = DockStyle.Fill;
+                    if (pdfControl != null)
+                    {
+                        //pdfControl.("");
+                        pdfControl.LoadPdf(filenamePDF);
+                        label = new Label();
+                        label.Dock = DockStyle.Fill;
+                        label.Text = part7.Marking + ".pdf";
+                        tableLayoutPanel1.Controls.Add(label, 0, 9);
+                        tableLayoutPanel1.SetColumnSpan(label, 2);
+                    }
+                    fileExists = true;
+                    break;
+                    #endregion
+                }
+            }
+            if (!fileExists)
+            {
                 MessageBox.Show("В каталоге нет одноименного чертежа");
             }
+
         }
 
         private void СreateExcel_Click(object sender, EventArgs e)
@@ -171,7 +361,7 @@ namespace Multitool
                     break;
                 case DocumentTypeEnum.ksDocumentPart:
                     {
-                        string a = Path.Combine(System.Windows.Forms.Application.StartupPath.ToString(), "PartTemplate.xlsx");
+                        string a = Path.Combine(GetTemplateDir(), "PartTemplate.xlsx");
                         string PathName = document3D.Path;
 
                         #region Вытаскиваем свойства
@@ -275,11 +465,11 @@ namespace Multitool
                         string a = "";
                         if (comboBox1.Text == "Сварочный")
                         {
-                            a = Path.Combine(System.Windows.Forms.Application.StartupPath.ToString(), "AssemblyTemplateWeld.xlsx");
+                            a = Path.Combine(GetTemplateDir(), "AssemblyTemplateWeld.xlsx");
                         }
                         if (comboBox1.Text == "Метизный")
                         {
-                            a = Path.Combine(System.Windows.Forms.Application.StartupPath.ToString(), "AssemblyTemplate.xlsx");
+                            a = Path.Combine(GetTemplateDir(), "AssemblyTemplate.xlsx");
                         }
 
                         string PathName = document3D.Path;
@@ -499,18 +689,6 @@ namespace Multitool
                             }
                         }
                         excelWorkbook.SaveAs(PathName + partDesignation + " - " + partName + ".xlsx");
-                        //var message = string.Join(Environment.NewLine, collectionParts.ToArray());
-                        //var message1 = string.Join(Environment.NewLine, collectionStandartDetails.ToArray());
-                        //var message2 = string.Join(Environment.NewLine, othertDetails.ToArray());
-                        //MessageBox.Show(collectionParts.Count.ToString());
-                        //if (message1 != "")
-                        //{
-                        //    MessageBox.Show(message1);
-                        //}
-                        //if (message2!= "")
-                        //{
-                        //    MessageBox.Show(message1);
-                        //}
                     }
                     break;
                 case DocumentTypeEnum.ksDocumentTextual:
@@ -544,12 +722,12 @@ namespace Multitool
                     string otherPart = @"'<property id=""SPCSection"" expression="""" fromSource=""false"" format=""{$sectionName}"">''''<property id=""sectionName"" value=""Прочие изделия"" type=""string"" />''''<property id=""sectionNumb"" value=""30"" type=""int"" />'";
                     string detal = @"'<property id=""SPCSection"" expression="""" fromSource=""false"" format=""{$sectionName}"">''''<property id=""sectionName"" value=""Детали"" type=""string"" />''''<property id=""sectionNumb"" value=""20"" type=""int"" />'";
                     string assembly = @"'<property id=""SPCSection"" expression="""" fromSource=""false"" format=""{$sectionName}"">''''<property id=""sectionName"" value=""Сборочные единицы"" type=""string"" />''''<property id=""sectionNumb"" value=""15"" type=""int"" />'";
-                    if (part7.Detail==true)
+                    if (part7.Detail == true)
                     {
                         propertyKeeper.SetComplexPropertyValue((_Property)item, detal);
                     }
                     else
-                    { 
+                    {
                         propertyKeeper.SetComplexPropertyValue((_Property)item, assembly);
                     }
                 }
@@ -599,7 +777,7 @@ namespace Multitool
 
             IFeature7 _feature7 = (IFeature7)document3D.TopPart;
             var _t = _feature7.Variable[false, true, "SM_Thickness"];
-            
+
             foreach (IFeature7 item in featCol)
             {
                 if (item.Name.Contains("Листовое тело:"))
@@ -613,37 +791,191 @@ namespace Multitool
                     }
                 }
             }
-            if (_t!=null)
+            if (_t != null)
             {
                 if (t != _t.Value) { MessageBox.Show("Толщина глобальной переменной и толщина листового тела не совпадают"); }
             }
-            
+
             #endregion
         }
 
-        private void button5_Click(object sender, EventArgs e)
+        private void newDXF_Click(object sender, EventArgs e)
         {
-            IApplication application = (IApplication)Marshal.GetActiveObject("Kompas.Application.7");
-            IKompasDocument3D document3D = (IKompasDocument3D)application.ActiveDocument;
-            IPart7 part7 = document3D.TopPart;
+            IApplication application;
+            IKompasDocument3D document3D;
+            IPart7 part7;
+            KompasObject kompas;
+            ksDocument3D doc3D;
 
-            ISheetMetalContainer sheetMetalContainer = part7 as ISheetMetalContainer;
-            ISheetMetalBodies sheetMetalBodies = sheetMetalContainer.SheetMetalBodies;
-            ISheetMetalBody sheetMetalBody = sheetMetalBodies.SheetMetalBody[0];
-
-            string[] fileEntries = Directory.GetFiles(document3D.Path);
-            string filenamePDF = "";
-
-            if (document3D.DocumentType == DocumentTypeEnum.ksDocumentPart && sheetMetalBody!=null)
+            try
             {
-                FileInfo fi = new FileInfo(part7.FileName);
-                    filenamePDF = fi.DirectoryName + "\\" +
-                                sheetMetalBody.Thickness.ToString(CultureInfo.CreateSpecificCulture("en-GB")) + "mm_" + part7.Marking.Remove(0, 3) + ".pdf";          
+                application = (IApplication)Marshal.GetActiveObject("Kompas.Application.7");
+                document3D = (IKompasDocument3D)application.ActiveDocument;
+                part7 = document3D.TopPart;
+                kompas = (KompasObject)Marshal.GetActiveObject("KOMPAS.Application.5");
+                doc3D = (ksDocument3D)kompas.TransferInterface(document3D, 1, 0);
             }
-            else { filenamePDF = part7.FileName.Remove(part7.FileName.Length - 4) + ".pdf"; }
-                        
-            MessageBox.Show(filenamePDF);
+            catch (Exception ex)
+            {
+                MessageBox.Show("Не удалось подключиться к КОМПАС:\n" + ex.Message,
+                    "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if (doc3D == null)
+            {
+                MessageBox.Show("Не удалось получить интерфейс ksDocument3D.",
+                    "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            var form = new FaceSelectForm(doc3D, document3D, part7, kompas, application);
+            form.DxfCreated += ShowDxfInViewer;
+            form.Show();
         }
-                
+
+        private void ShowDxfInViewer(string dxfPath)
+        {
+            if (pdfControl != null)
+            {
+                tableLayoutPanel1.Controls.Remove(pdfControl);
+                pdfControl.Dispose();
+                pdfControl = null;
+            }
+            OpenDxfInViewer(dxfPath);
+        }
+
+        private void OpenDxfInViewer(string dxfPath)
+        {
+            if (dxfViewer == null)
+            {
+                dxfViewer = new DxfViewerControl { Dock = DockStyle.Fill };
+                tableLayoutPanel1.Controls.Add(dxfViewer, 1, 0);
+                tableLayoutPanel1.SetRowSpan(dxfViewer, 9);
+            }
+
+            dxfViewer.LoadDxf(dxfPath);
+
+            if (label == null)
+            {
+                label = new Label { Dock = DockStyle.Fill };
+                tableLayoutPanel1.Controls.Add(label, 0, 9);
+                tableLayoutPanel1.SetColumnSpan(label, 2);
+            }
+            label.Text = Path.GetFileName(dxfPath);
+        }
+
+        private void Settings_Click(object sender, EventArgs e)
+        {
+            if (settings != null && !settings.IsDisposed)
+            {
+                // Если форма уже есть, активируем её
+                settings.BringToFront();
+                return;
+            }
+            settings = new Settings
+            {
+                TopMost = true
+            };
+            GroupBox groupBox = new GroupBox
+            {
+                Dock = DockStyle.Fill,
+                Text = "Пока не придумал"
+            };
+            settings.Controls.Add(groupBox);
+            TableLayoutPanel tablelayoutpanel = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                RowCount = 5
+            };
+            tablelayoutpanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150));
+            tablelayoutpanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+
+            groupBox.Controls.Add(tablelayoutpanel);
+
+            Label label_DXF = new Label
+            {
+                Dock = DockStyle.Fill,
+                Text = "Куда выгрузить DXF",
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+            tablelayoutpanel.Controls.Add(label_DXF, 0, 0);
+
+            Label label_PDF = new Label
+            {
+                Dock = DockStyle.Fill,
+                Text = "Куда выгрузить PDF",
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+            tablelayoutpanel.Controls.Add(label_PDF, 0, 1);
+
+            //Label label_CUT_SPEED = new Label
+            //{
+            //    Dock = DockStyle.Fill,
+            //    Text = "Путь до настроек скорости резки",
+            //    TextAlign = ContentAlignment.MiddleLeft
+            //};
+            //tablelayoutpanel.Controls.Add(label_CUT_SPEED, 0, 1);
+
+            TextBox textBox_DXF = new TextBox
+            {
+                Dock = DockStyle.Fill,
+                TextAlign = HorizontalAlignment.Left
+            };
+            tablelayoutpanel.Controls.Add(textBox_DXF, 1, 0);
+
+            TextBox textBox_PDF = new TextBox
+            {
+                Dock = DockStyle.Fill,
+                TextAlign = HorizontalAlignment.Left
+            };
+            tablelayoutpanel.Controls.Add(textBox_PDF, 1, 1);
+
+            //TextBox textBox_CUT_SPEED = new TextBox
+            //{
+            //    Dock = DockStyle.Fill,
+            //    TextAlign = HorizontalAlignment.Left
+            //};
+            //tablelayoutpanel.Controls.Add(textBox_CUT_SPEED, 1, 1);
+
+
+            string filePath = GetSettingsFilePath();
+
+            //Дисериализация настроек
+            if (System.IO.File.Exists(filePath))
+            {
+                var serializer = new System.Xml.Serialization.XmlSerializer(typeof(SettingsData));
+                using (var reader = new System.IO.StreamReader(filePath))
+                {
+                    var loadedData = (SettingsData)serializer.Deserialize(reader);
+                    textBox_DXF.Text = loadedData.textBox_DXF;
+                    textBox_PDF.Text = loadedData.textBox_PDF;
+                    //textBox_CUT_SPEED.Text = loadedData.textBox_CUT_SPEED;
+                }
+            }
+
+            //Создаем объект для сериализации с текущим значением TextBox
+            settings.FormClosing += (s, args) =>
+            {
+                var dataToSerialize = new SettingsData
+                {
+                    textBox_DXF = textBox_DXF.Text,
+                    textBox_PDF = textBox_PDF.Text,
+                    //textBox_CUT_SPEED = textBox_CUT_SPEED.Text
+                };
+                Settings_FormClosing(dataToSerialize, filePath);
+            };
+            settings.Show();
+        }
+
+        private void Settings_FormClosing(SettingsData data, string filePath)
+        {
+            var serializer = new System.Xml.Serialization.XmlSerializer(typeof(SettingsData));
+            using (var writer = new System.IO.StreamWriter(filePath))
+            {
+                serializer.Serialize(writer, data);
+            }
+        }
     }
 }

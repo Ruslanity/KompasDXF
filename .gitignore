@@ -4,3 +4,19 @@ obj/
 .vs/
 Properties/
 packages/
+Setup/Setup.vdproj
+Setup/Debug/Setup Multitool v1.0.1.msi
+Setup/Debug/setup.exe
+Setup/Release/Setup Multitool v1.0.2.msi
+Setup/Release/setup.exe
+DELETE/x64/pdfium.dll
+DELETE/x86/pdfium.dll
+DELETE/eDrawForm.cs
+DELETE/eDrawForm.Designer.cs
+DELETE/eDrawForm.resx
+DELETE/eDrawings.Interop.EModelViewControl.dll
+DELETE/EDrawingsHost/eDrawings.Interop.EModelViewControl.dll
+DELETE/EDrawingsHost/EDrawingsHost.cs
+DELETE/EDrawingsHost/EDrawingsHost.csproj
+Libs/pdfium.dll
+DELETE/eDrawingHost.cs
