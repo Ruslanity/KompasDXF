@@ -32,7 +32,14 @@ namespace Multitool
             // Читаем в память — оригинальный файл не блокируется и остаётся
             // доступным для перезаписи или удаления
             byte[] data = File.ReadAllBytes(filePath);
+
+            // В режиме Library (COM DLL) Handle контрола может не быть создан
+            // в момент вызова — Renderer.Load() → Invalidate() уходит в никуда
+            if (!pdfViewer.IsHandleCreated)
+                pdfViewer.CreateControl();
+
             pdfViewer.Document = PdfDocument.Load(new MemoryStream(data));
+            pdfViewer.Refresh();
         }
 
         protected override void Dispose(bool disposing)

@@ -18,6 +18,21 @@ namespace Multitool
             _viewProjMgr = viewProjMgr;
         }
 
+        public bool CompareOriental(IPart7 part7)
+        {
+            IAuxiliaryGeomContainer auxiliaryGeomContainer = (IAuxiliaryGeomContainer)part7;
+            ILocalCoordinateSystems localCoordinateSystems = auxiliaryGeomContainer.LocalCoordinateSystems;
+            int d = localCoordinateSystems.Count;
+            ILocalCoordinateSystem localCoordinateSystem = localCoordinateSystems.LocalCoordinateSystem[0];
+            IVector3D vector3D = localCoordinateSystem.Vector3D[ksObj3dTypeEnum.o3d_axis3D];
+            IVector3DByScreenNormalParameters byScreenNormalParameters = (IVector3DByScreenNormalParameters)vector3D.Parameters;
+            bool directionNormal = byScreenNormalParameters.Direction;
+            //IVector3DAlongSurfaceNormalParameters alongSurfaceNormalParameters = (IVector3DAlongSurfaceNormalParameters)vector3D.Parameters;
+            //alongSurfaceNormalParameters.BaseObject = face;
+            //bool directionSurface = alongSurfaceNormalParameters.Direction;
+            return directionNormal;
+        }
+
         /// <summary>
         /// Ориентирует 3D-вид так, чтобы нормаль грани смотрела в экран.
         /// Использует API7 IViewProjectionManager.SetMatrix3D.
@@ -61,6 +76,10 @@ namespace Multitool
             // Строка 0 = направление проекции (нормаль грани = ось глубины)
             // Строка 1 = горизонталь в плоскости проекции
             // Строка 2 = вертикаль в плоскости проекции
+
+            //Row0 = X(right)
+            //Row1 = Y(up)
+            //Row2 = Z(view direction / normal)
             double[] m = new double[16]
             {
                 vXx, vXy, vXz, 0.0,
@@ -70,7 +89,7 @@ namespace Multitool
             };
 
             // Применить ориентацию к живому 3D-окну
-            _viewProjMgr.SetMatrix3D(m, 2.0);
+            _viewProjMgr.SetMatrix3D(m, 1.0);
             return true;
         }
     }
@@ -249,6 +268,8 @@ namespace Multitool
                 if (!rotator.OrientViewToFaceNormal(face))
                     throw new InvalidOperationException("Не удалось ориентировать вид по нормали грани.");
 
+
+
                 _part7.Update();
 
                 // Захватить текущую ориентацию как именованную проекцию
@@ -268,6 +289,15 @@ namespace Multitool
                 CreateAndSaveDxf(dxfPath);
 
                 DxfCreated?.Invoke(dxfPath);
+                for (int i = 0; i < viewProjectionManager.Count; i++)
+                {
+                    IViewProjection7 deleteViewProjection = viewProjectionManager.ViewProjection[i];
+                    if (deleteViewProjection.Name == "Авторазвертка")
+                    {
+                        deleteViewProjection.Delete();
+                        _part7.Update();
+                    }
+                }
                 this.Close();
             }
             catch (Exception ex)

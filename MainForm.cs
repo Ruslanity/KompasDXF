@@ -26,7 +26,6 @@ namespace Multitool
     {
         private static MainForm instance;
         private DxfViewerControl dxfViewer;
-        private Label label;
         private Settings settings;
         private PdfViewerControl pdfControl;
 
@@ -323,13 +322,8 @@ namespace Multitool
                     pdfControl.Dock = DockStyle.Fill;
                     if (pdfControl != null)
                     {
-                        //pdfControl.("");
                         pdfControl.LoadPdf(filenamePDF);
-                        label = new Label();
-                        label.Dock = DockStyle.Fill;
-                        label.Text = part7.Marking + ".pdf";
-                        tableLayoutPanel1.Controls.Add(label, 0, 9);
-                        tableLayoutPanel1.SetColumnSpan(label, 2);
+                        statusLabel.Text = Path.GetFileName(filenamePDF);
                     }
                     fileExists = true;
                     break;
@@ -855,14 +849,7 @@ namespace Multitool
             }
 
             dxfViewer.LoadDxf(dxfPath);
-
-            if (label == null)
-            {
-                label = new Label { Dock = DockStyle.Fill };
-                tableLayoutPanel1.Controls.Add(label, 0, 9);
-                tableLayoutPanel1.SetColumnSpan(label, 2);
-            }
-            label.Text = Path.GetFileName(dxfPath);
+            statusLabel.Text = Path.GetFileName(dxfPath);
         }
 
         private void Settings_Click(object sender, EventArgs e)

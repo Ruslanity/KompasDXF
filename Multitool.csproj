@@ -138,6 +138,14 @@
     <EmbeddedResource Include="Controls\Settings.resx">
       <DependentUpon>Settings.cs</DependentUpon>
     </EmbeddedResource>
+    <None Include="packages\PdfiumViewer.2.0.0.0\content\x64\pdfium.dll">
+      <Link>x64\pdfium.dll</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="packages\PdfiumViewer.2.0.0.0\content\x86\pdfium.dll">
+      <Link>x86\pdfium.dll</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="Шаблоны Excel\AssemblyTemplate.xlsx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -214,6 +222,10 @@
       <ProductName>.NET Framework 3.5 SP1</ProductName>
       <Install>false</Install>
     </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="x64\" />
+    <Folder Include="x86\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
