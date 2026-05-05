@@ -51,6 +51,8 @@ namespace Multitool
         // а также заменяет имя InprocServer32 на полное, с указанием пути.
         // Все это делается для того, чтобы иметь возможность подключить
         // библиотеку на вкладке ActiveX.
+        private const string KompasAddInPath = @"SOFTWARE\ASCON\KOMPAS-3D\AddIns\Multitool";
+
         [ComRegisterFunction]
         public static void RegisterKompasLib(Type t)
         {
@@ -59,7 +61,7 @@ namespace Multitool
                 RegistryKey regKey = Registry.LocalMachine;
                 string keyName = @"SOFTWARE\Classes\CLSID\{" + t.GUID.ToString() + "}";
                 regKey = regKey.OpenSubKey(keyName, true);
-                regKey.CreateSubKey("Multitool");
+                regKey.CreateSubKey("Kompas_Library");
                 regKey = regKey.OpenSubKey("InprocServer32", true);
                 regKey.SetValue(null, System.Environment.GetFolderPath(Environment.SpecialFolder.System) + @"\mscoree.dll");
                 regKey.Close();
@@ -67,6 +69,30 @@ namespace Multitool
             catch (Exception ex)
             {
                 MessageBox.Show(string.Format("При регистрации класса для COM-Interop произошла ошибка:\n{0}", ex));
+            }
+
+            try
+            {
+                string assemblyPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+                RegistryKey addInKey;
+                try
+                {
+                    addInKey = Registry.LocalMachine.CreateSubKey(KompasAddInPath);
+                }
+                catch
+                {
+                    addInKey = Registry.CurrentUser.CreateSubKey(KompasAddInPath);
+                }
+                using (addInKey)
+                {
+                    addInKey.SetValue("AutoConnect", 1, RegistryValueKind.DWord);
+                    addInKey.SetValue("Path", assemblyPath);
+                    addInKey.SetValue("ProgID", "Multitool.Multitool");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(string.Format("Ошибка регистрации аддина в КОМПАС:\n{0}", ex));
             }
         }
 
@@ -77,8 +103,14 @@ namespace Multitool
             RegistryKey regKey = Registry.LocalMachine;
             string keyName = @"SOFTWARE\Classes\CLSID\{" + t.GUID.ToString() + "}";
             RegistryKey subKey = regKey.OpenSubKey(keyName, true);
-            subKey.DeleteSubKey("Multitool");
-            subKey.Close();
+            if (subKey != null)
+            {
+                subKey.DeleteSubKeyTree("Kompas_Library", false);
+                subKey.Close();
+            }
+
+            try { Registry.LocalMachine.DeleteSubKey(KompasAddInPath, false); } catch { }
+            try { Registry.CurrentUser.DeleteSubKey(KompasAddInPath, false); } catch { }
         }
         #endregion
     }
